@@ -1023,7 +1023,182 @@ Verify:
 
 exists and is writable.
 
-### n8n PostgreSQL credential
+#
+## Environment and Storage Configuration
+
+A working PTalk installation depends on several environment-specific settings. These values must be adapted when the project is moved to another server, Docker host, domain, or infrastructure.
+
+### 1. n8n Obsidian storage
+
+The n8n workflows use the following container path:
+
+```text
+/data/obsidian
+```
+
+Both **Patient Administration** and **Patient RAG** depend on this path.
+
+Patient Administration writes:
+
+```text
+/data/obsidian/Patients/{patient_id}/Patient.md
+/data/obsidian/Patients/{patient_id}/Consultations/
+```
+
+Patient RAG reads the same patient and consultation files.
+
+Therefore, the n8n container must have a persistent, writable bind mount or Docker volume at:
+
+```text
+<HOST_OBSIDIAN_PATH>:/data/obsidian
+```
+
+Example Docker Compose configuration:
+
+```yaml
+services:
+  n8n:
+    volumes:
+      - <HOST_OBSIDIAN_PATH>:/data/obsidian
+```
+
+`<HOST_OBSIDIAN_PATH>` is intentionally a placeholder. It must be replaced with the actual storage directory on the deployment machine.
+
+The host directory must:
+
+- exist before n8n starts
+- be writable by the user/process running n8n
+- persist independently from the n8n container
+- contain the `Patients/` directory or allow n8n to create it
+- remain available after container recreation or updates
+
+The **Patient Administration** workflow also uses an `Execute Command` node to create patient directories. The n8n deployment therefore needs to allow this workflow operation, and the n8n process must have permission to create directories below `/data/obsidian`.
+
+Do not store the Obsidian patient data inside the Git repository.
+
+### 2. Backend environment
+
+The backend reads its PostgreSQL configuration from its environment:
+
+```text
+PORT=4000
+DB_HOST=<POSTGRES_HOST>
+DB_PORT=5432
+DB_NAME=<POSTGRES_DATABASE>
+DB_USER=<POSTGRES_USER>
+DB_PASSWORD=<POSTGRES_PASSWORD>
+```
+
+The actual values are deployment-specific and must not be committed to GitHub.
+
+The backend must be able to reach PostgreSQL over the Docker network. In the current local Docker setup, the PostgreSQL service is reachable through the Docker network used by n8n and the backend.
+
+### 3. Frontend and backend URLs
+
+The frontend contains API proxy routes that communicate with the backend. When PTalk is moved from the current local setup to another server or domain, these URLs must be reviewed.
+
+Typical deployment values include:
+
+```text
+Frontend URL
+Backend URL
+n8n webhook URL
+```
+
+Do not assume that `localhost` is correct in production. Inside Docker, `localhost` refers to the current container, not another service.
+
+The following connections therefore need to be checked after deployment:
+
+```text
+Browser
+   |
+   v
+Frontend / Next.js
+   |
+   v
+Backend / Fastify
+   |
+   +----> PostgreSQL
+   |
+   +----> n8n webhooks
+              |
+              +----> Gemma API
+              |
+              +----> STT API
+              |
+              +----> /data/obsidian
+```
+
+### 4. n8n environment and credentials
+
+The n8n installation requires access to:
+
+- PostgreSQL
+- the Obsidian storage directory
+- Gemma
+- the STT service
+- the imported PTalk workflows
+
+The PostgreSQL connection used by the workflows is represented by an n8n credential. After importing the workflows into another n8n instance, the PostgreSQL credential may need to be recreated or reassigned.
+
+Workflow exports may contain credential references, but they must not contain actual passwords, API tokens, or other secrets.
+
+Gemma and STT endpoints/tokens must be configured for the target environment. The public repository intentionally uses placeholders instead of real credentials.
+
+### 5. Docker networking
+
+The backend and n8n need network access to the services they communicate with.
+
+The intended local architecture is:
+
+```text
+ptalk-backend
+      |
+      +-------------------+
+      |                   |
+      v                   v
+ n8n-network          PostgreSQL
+      |
+      v
+     n8n
+      |
+      +----> Gemma
+      |
+      +----> STT
+      |
+      +----> /data/obsidian
+```
+
+When deploying to a new machine, verify:
+
+1. Backend and PostgreSQL can communicate.
+2. Backend can reach the n8n webhook.
+3. n8n can reach PostgreSQL.
+4. n8n can reach Gemma.
+5. n8n can reach the STT service.
+6. n8n can read and write `/data/obsidian`.
+7. The frontend can reach the backend through the configured API routes.
+
+### 6. Production security
+
+Before public deployment:
+
+- replace all local development URLs
+- configure HTTPS
+- restrict CORS to the actual frontend origin
+- use strong PostgreSQL credentials
+- use strong admin credentials
+- configure real secrets through environment variables or a secret manager
+- never commit `.env` files
+- never commit API tokens
+- never commit PostgreSQL passwords
+- never commit real patient records
+- keep `/data/obsidian` outside the public Git repository
+- review imported n8n credentials and permissions
+- rotate any credentials that were previously exposed during development
+
+
+## n8n PostgreSQL credential
 
 Reconnect the credential after importing workflows if necessary.
 
