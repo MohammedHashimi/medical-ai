@@ -1,0 +1,170 @@
+{
+  "name": "Patient Administration",
+  "nodes": [
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "WITH consultation AS (\n    INSERT INTO public.patient_consultations (\n        patient_id,\n        language,\n        transcript\n    )\n    VALUES (\n        $1,\n        'vi',\n        $2\n    )\n    RETURNING\n        consultation_id,\n        patient_id,\n        language,\n        transcript,\n        consultation_date\n)\nSELECT\n    c.consultation_id,\n    c.patient_id,\n    c.language,\n    c.transcript,\n    c.consultation_date,\n    p.first_name,\n    p.last_name,\n    p.date_of_birth\nFROM consultation c\nJOIN public.patient_identity p\n    ON p.patient_id = c.patient_id;",
+        "options": {
+          "queryReplacement": "=$1 → {{ $json.patient_id }}\n$2 → {{ $json.text }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [560, 656],
+      "id": "68e826ef-567b-430f-a9b9-cf43a6b5daf7",
+      "name": "Patient/Consultation-Node",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "TKSeFDOOaXMczEDD",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "inputSource": "jsonExample",
+        "jsonExample": "{\n  \"text\": \"a string\",\n  \"patient_id\" : \"a string\"\n}"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [176, 656],
+      "id": "ef02d3d4-51f0-4464-a194-33120b467db9",
+      "name": "When Executed by Another Workflow"
+    },
+    {
+      "parameters": {
+        "command": "=mkdir -p \"/data/obsidian/Patients/{{$json.patient_id}}/Consultations\""
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [992, 464],
+      "id": "05b7641f-07f9-4d9e-b23e-009d6dad5631",
+      "name": "Create Patient Folder"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nconst dateOfBirth = data.date_of_birth\n  ? new Date(data.date_of_birth)\n      .toISOString()\n      .slice(0, 10)\n  : \"Not specified\";\n\nconst consultations = Array.isArray(data.consultations)\n  ? data.consultations\n  : [];\n\nconst consultationLinks = consultations\n  .map((c) => {\n    return `- [[${data.patient_id}/Consultations/${c.consultation_id}]]`;\n  })\n  .join(\"\\n\");\n\nconst markdown = `# Patient\n\n## Patient Information\n\n- Patient ID: ${data.patient_id}\n- First Name: ${data.first_name}\n- Last Name: ${data.last_name}\n- Date of Birth: ${dateOfBirth}\n\n## Consultations\n\n${consultationLinks || \"- None\"}\n`;\n\nreturn [\n  {\n    json: {\n      ...data,\n      patient_filename: \"Patient.md\",\n      patient_path: `/data/obsidian/Patients/${data.patient_id}/Patient.md`,\n      patient_markdown: markdown,\n    },\n  },\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1008, 736],
+      "id": "0f7d3512-698a-48e4-b567-a6e039741015",
+      "name": "Build Patient Note"
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "patient_markdown",
+        "options": {
+          "encoding": "utf8",
+          "fileName": "patient_filename"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [1232, 736],
+      "id": "0ae8d004-e352-4f11-8048-b017d1bd18ac",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch",
+        "useDataOfInput": 2
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [1456, 736],
+      "id": "407c2554-b285-4d38-b838-f0c1711b2a30",
+      "name": "Wait for Folder"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "={{ \"/data/obsidian/Patients/\" + $('Patient/Consultation-Node').first().json.patient_id + \"/Patient.md\" }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [1680, 736],
+      "id": "e1c5bcf1-8fd9-4c46-ac07-3e54bfc63bc2",
+      "name": "Read/Write Files from Disk"
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $('Patient/Consultation-Node').first().json;\n\nreturn [\n  {\n    json: {\n      patient_id: data.patient_id,\n      consultation_id: data.consultation_id\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1888, 736],
+      "id": "ef00ff3d-307a-4680-924b-686cf11779ee",
+      "name": "Return Patient Consultation"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    pi.patient_id,\n    pi.first_name,\n    pi.last_name,\n    pi.date_of_birth,\n    COALESCE(\n        json_agg(\n            json_build_object(\n                'consultation_id', pc.consultation_id,\n                'consultation_date', pc.consultation_date\n            )\n            ORDER BY pc.consultation_date DESC\n        ) FILTER (WHERE pc.consultation_id IS NOT NULL),\n        '[]'::json\n    ) AS consultations\nFROM public.patient_identity pi\nLEFT JOIN public.patient_consultations pc\n    ON pc.patient_id = pi.patient_id\nWHERE pi.patient_id = $1\nGROUP BY\n    pi.patient_id,\n    pi.first_name,\n    pi.last_name,\n    pi.date_of_birth;",
+        "options": {
+          "queryReplacement": "=$1 → {{ $json.patient_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [784, 656],
+      "id": "2452e990-8473-4638-8724-e49ee4be00f3",
+      "name": "Load Patient for Obsidian",
+      "credentials": {
+        "postgres": {
+          "id": "TKSeFDOOaXMczEDD",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [[{"node": "Patient/Consultation-Node", "type": "main", "index": 0}]]
+    },
+    "Patient/Consultation-Node": {
+      "main": [
+        [
+          {"node": "Create Patient Folder", "type": "main", "index": 0},
+          {"node": "Load Patient for Obsidian", "type": "main", "index": 0}
+        ]
+      ]
+    },
+    "Create Patient Folder": {
+      "main": [[{"node": "Wait for Folder", "type": "main", "index": 0}]]
+    },
+    "Build Patient Note": {
+      "main": [[{"node": "Convert to File", "type": "main", "index": 0}]]
+    },
+    "Convert to File": {
+      "main": [[{"node": "Wait for Folder", "type": "main", "index": 1}]]
+    },
+    "Wait for Folder": {
+      "main": [[{"node": "Read/Write Files from Disk", "type": "main", "index": 0}]]
+    },
+    "Read/Write Files from Disk": {
+      "main": [[{"node": "Return Patient Consultation", "type": "main", "index": 0}]]
+    },
+    "Load Patient for Obsidian": {
+      "main": [[{"node": "Build Patient Note", "type": "main", "index": 0}]]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "a3741d0f-fd3a-4bdb-814b-20d80402be4f",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d73ec44ec989ac1332d6c05f2ece59e3ed4f920ab644be4db3a0b842cbd338d6"
+  },
+  "nodeGroups": [],
+  "id": "GBlFfITvQOmxiP4r",
+  "tags": []
+}
