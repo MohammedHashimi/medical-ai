@@ -1,0 +1,1513 @@
+{
+  "name": "medical-ai",
+  "nodes": [
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a424ca7a-4cd5-456d-bdc5-a7ed5daea322",
+              "leftValue": "={{ $json.choices[0].message.content }}",
+              "rightValue": "=Please provide",
+              "operator": {
+                "type": "string",
+                "operation": "notStartsWith"
+              }
+            },
+            {
+              "id": "190b6770-e99c-4230-8b80-f10b9dd37be4",
+              "leftValue": "={{ $json.choices[0].message.content }}",
+              "rightValue": "[]",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "ignoreCase": false
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        368,
+        496
+      ],
+      "id": "42c773e6-5ac2-45bf-885e-22f0c8cdef81",
+      "name": "If"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -80,
+        496
+      ],
+      "id": "e65f10e8-2113-4dc9-a3cb-40fc5ce4a999",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "content": "## I'm a note \nWorkflow for transcription."
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -640,
+        432
+      ],
+      "typeVersion": 1,
+      "id": "b2f521ac-54da-43d7-981c-dc0a7e989c39",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## I'm a note \nWorkflow to create patient\n",
+        "height": 128
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        144,
+        912
+      ],
+      "typeVersion": 1,
+      "id": "a2356c2a-564a-4d61-a94a-831b934ae409",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        816,
+        736
+      ],
+      "id": "baf54520-3d4c-41ca-8c39-a6654c250173",
+      "name": "Merge2",
+      "alwaysOutputData": false,
+      "notesInFlow": false
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "symptoms",
+        "include": "allOtherFields",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        736
+      ],
+      "id": "35160e96-49bf-43aa-af13-616bec1a1e86",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.consultation_symptoms (\n    consultation_id,\n    symptom_id,\n    evidence,\n    certainty\n)\nVALUES (\n    '{{ $json.consultation_id }}',\n    {{ $json.symptoms.symptom_id }},\n    '{{ $json.symptoms.evidence }}',\n    '{{ $json.symptoms.certainty }}'\n)\nON CONFLICT (consultation_id, symptom_id)\nDO UPDATE SET\n    evidence = EXCLUDED.evidence,\n    certainty = EXCLUDED.certainty\nRETURNING consultation_id, symptom_id;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        1264,
+        736
+      ],
+      "id": "6c999419-5f07-46d9-854d-177d1a9dacb3",
+      "name": "Saving Symptoms to consultation",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "TKSeFDOOaXMczEDD",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT json_agg(\n    json_build_object(\n        'id', id,\n        'name', name\n    )\n    ORDER BY id\n) AS symptoms\nFROM symptoms;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        -304,
+        400
+      ],
+      "id": "7457efa4-5211-440b-9217-5c4378d3ec2d",
+      "name": "Symptom Query",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "TKSeFDOOaXMczEDD",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    d.id,\n    d.name,\n    COUNT(*) AS matching_symptoms,\n    json_agg(\n        json_build_object(\n            'symptom_id', s.id,\n            'symptom', s.name\n        )\n        ORDER BY s.id\n    ) AS matched_symptoms\nFROM public.disease_symptoms ds\nJOIN public.diseases d\n    ON d.id = ds.disease_id\nJOIN public.symptoms s\n    ON s.id = ds.symptom_id\nWHERE ds.symptom_id IN (\n    SELECT json_array_elements_text(\n        '{{ JSON.stringify($json.symptoms.map(s => s.symptom_id)) }}'::json\n    )::integer\n)\nGROUP BY d.id, d.name\nORDER BY matching_symptoms DESC\nLIMIT 3;",
+        "options": {
+          "queryReplacement": "="
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        1040,
+        448
+      ],
+      "id": "e6213d76-fd43-4449-b982-f58523975271",
+      "name": "Disease-Matching",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "TKSeFDOOaXMczEDD",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const dbSymptoms = $('Symptom Query').first().json.symptoms;\n\nconst dbMap = new Map(\n  dbSymptoms.map(s => [s.name.toLowerCase().trim(), s])\n);\n\nconst symptoms = $json.symptoms ?? [];\n\nconst corrected = symptoms\n  .map(s => {\n    const match = dbMap.get(s.symptom.toLowerCase().trim());\n\n    if (!match) {\n      return null;\n    }\n\n    return {\n      symptom_id: match.id,\n      symptom: match.name,\n      evidence: s.evidence,\n      certainty: s.certainty\n    };\n  })\n  .filter(Boolean);\n\nreturn [{\n  json: {\n    symptoms: corrected\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        816,
+        448
+      ],
+      "id": "6a385b2e-f6fa-44ce-b908-4592f1344eb0",
+      "name": "Check DB-ID"
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $json.choices[0].message.content;\n\nconst result = JSON.parse(content);\n\nreturn [\n  {\n    json: result\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        592,
+        496
+      ],
+      "id": "59096e0b-162c-46c7-8c9f-8f057c15f22c",
+      "name": "Cleanup"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "API_URL",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer_GEMMA"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={ \"model\": \"gemma-4\", \"messages\": [ { \"role\": \"system\", \"content\": \"You are a medical symptom extraction assistant. Return exactly ONE valid JSON object and NOTHING ELSE. No markdown. No code fences. No explanations. No text before or after the JSON.\\n\\nThe patient transcript may be in Vietnamese. The available symptom list is in English.\\n\\nUnderstand the Vietnamese transcript and match symptoms ONLY to exact symptom names from the provided list.\\n\\nRules:\\n1. Understand Vietnamese medical descriptions and everyday Vietnamese expressions.\\n2. Translate the meaning internally into English before matching.\\n3. ONLY select symptoms that exist in the provided symptom list.\\n4. Use the symptom name EXACTLY as it appears in the symptom list.\\n5. NEVER invent a symptom.\\n6. Do not diagnose the patient.\\n7. Do not infer a disease.\\n8. Only extract symptoms actually mentioned or clearly described.\\n9. If the patient explicitly denies a symptom, do NOT include it.\\n10. If a statement cannot be reliably matched to the symptom list, leave it out.\\n11. Keep the original Vietnamese evidence in the evidence field.\\n12. certainty must be exactly either certain or not certain.\\n13. Return exactly one JSON object.\\n\\nIMPORTANT ID RULE:\\n14. Every selected symptom MUST contain symptom_id.\\n15. The symptom_id MUST be copied EXACTLY from the id field of the SAME symptom object in AVAILABLE SYMPTOMS.\\n16. The symptom name and symptom_id MUST always come from the SAME object.\\n17. NEVER invent, guess, calculate, modify, or approximate a symptom_id.\\n18. NEVER combine the name from one symptom object with the ID from another symptom object.\\n19. Before returning the answer, verify that every symptom_id matches the exact symptom name.\\n\\nIMPORTANT SYMPTOM MATCHING RULE:\\n20. NEVER create a descriptive symptom name such as numbness in arm or numbness.\\n21. If the patient describes numbness, tingling, loss of sensation, or a similar sensation, select the closest matching symptom ONLY from AVAILABLE SYMPTOMS.\\n22. The output symptom name MUST be exactly one of the provided name values.\\n23. Do NOT translate, paraphrase, shorten, expand, or change the symptom name.\\n24. If multiple available symptoms could match, choose the most specific valid symptom from AVAILABLE SYMPTOMS.\\n25. If no valid symptom exists in AVAILABLE SYMPTOMS, leave the symptom out.\\n\\nExample:\\nIf AVAILABLE SYMPTOMS contains an object with id 6 and name dizziness, the output MUST use symptom_id 6 and symptom dizziness.\\nIf AVAILABLE SYMPTOMS contains an object with id 167 and name paresthesia, the output MUST use symptom_id 167 and symptom paresthesia.\\n\\n AVAILABLE SYMPTOMS {{ $json.symptoms[0] }} \\n\\nThe required output format is:\\n{\\\"symptoms\\\":[{\\\"symptom_id\\\":10,\\\"symptom\\\":\\\"palpitations\\\",\\\"evidence\\\":\\\"original Vietnamese statement\\\",\\\"certainty\\\":\\\"certain\\\"}]}\\n\\nIf no symptoms are found, return exactly:\\n{\\\"symptoms\\\":[]}\" }, { \"role\": \"user\", \"content\": \"PATIENT TRANSCRIPT:\\n{{ $json.text }}\" } ], \"temperature\": 0.1, \"max_tokens\": 2000 }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        144,
+        496
+      ],
+      "id": "a1a8340d-dafc-4d87-bd56-fcaad41f07b3",
+      "name": "Gemini1",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "API_URL",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer_GEMMA"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"gemma-4\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a medical red-flag detection assistant. Analyze ONLY the patient symptoms provided by the user. Ignore all disease information. Do not diagnose. Identify potentially urgent or emergency warning signs. Pay particular attention to neurological, cardiovascular and respiratory red flags. One-sided numbness, loss of sensation, weakness, speech problems, facial asymmetry or sudden severe dizziness may be urgent warning signs. Chest pain, severe shortness of breath or loss of consciousness may also be urgent. Return exactly one valid JSON object and nothing else. emergency must be true or false. urgency must be high, medium or low. Output format: {\\\"emergency\\\":true,\\\"urgency\\\":\\\"high\\\",\\\"red_flags\\\":[{\\\"symptom\\\":\\\"paresthesia\\\",\\\"reason\\\":\\\"potential neurological warning sign\\\"}],\\\"reason\\\":\\\"Potentially urgent symptoms requiring clinical assessment.\\\"}. If there are no red flags, return {\\\"emergency\\\":false,\\\"urgency\\\":\\\"low\\\",\\\"red_flags\\\":[],\\\"reason\\\":\\\"No immediate red flags identified from the reported symptoms.\\\"}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"PATIENT SYMPTOMS: {{ $json.symptoms.map(s => s.symptom + ' | evidence: ' + s.evidence + ' | certainty: ' + s.certainty).join('; ') }}\"\n    }\n  ],\n  \"temperature\": 0.1,\n  \"max_tokens\": 1000\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1488,
+        304
+      ],
+      "id": "e35e75a8-c45b-4651-96c5-0171d8a99428",
+      "name": "EmergencyCheck",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1264,
+        304
+      ],
+      "id": "7c5ac7a1-4456-4bc1-ba9f-9b94044502de",
+      "name": "Merge3"
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $json.choices?.[0]?.message?.content;\n\nif (!content) {\n  return [{\n    json: {\n      error: \"EmergencyCheck returned no content\"\n    }\n  }];\n}\n\ntry {\n  // Entfernt ```json ... ``` falls Gemma Markdown zurückgibt\n  const cleaned = content\n    .replace(/^```json\\s*/i, \"\")\n    .replace(/^```\\s*/i, \"\")\n    .replace(/\\s*```$/i, \"\")\n    .trim();\n\n  const result = JSON.parse(cleaned);\n\n  return [{\n    json: result\n  }];\n\n} catch (error) {\n  return [{\n    json: {\n      error: \"EmergencyCheck returned invalid JSON\",\n      raw_content: content\n    }\n  }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1712,
+        224
+      ],
+      "id": "0847ee7d-a0d7-47c5-bdb3-77ae3822401f",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "content": "## I'm a note \nCheck for Emergency\n"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1216,
+        0
+      ],
+      "typeVersion": 1,
+      "id": "1301ad11-d242-4fe6-abc3-5e78fbc10b51",
+      "name": "Sticky Note2"
+    },
+    {
+      "parameters": {
+        "content": "= Emergency == 1 --> Human Review\n!= Emergency = 0 --> Clinical Review\n "
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1712,
+        112
+      ],
+      "typeVersion": 1,
+      "id": "0a2cd043-b4cc-4232-9b4a-a45e0c5baf7b",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "TBD = Obsidian + RAG"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1312,
+        672
+      ],
+      "typeVersion": 1,
+      "id": "3145c7fe-1c12-4d5d-9d1b-ab83335b559b",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "179882ca-1d50-46d0-99b2-ba5a4bebdead",
+              "leftValue": "={{ $json.emergency }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1936,
+        304
+      ],
+      "id": "6e8693a3-d350-4db3-96e9-05dc062d2245",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "content": "## True\nEmergency detected\n        ↓\nHuman clinician reviews\n        ↓\nApprove / reject escalation",
+        "height": 192
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1920,
+        32
+      ],
+      "typeVersion": 1,
+      "id": "ab838af3-f39c-4e79-9b29-4c9340d5fb24",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "API_URL",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer_GEMMA"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n  {\n    model: \"gemma-4\",\n    messages: [\n      {\n        role: \"system\",\n        content:\n          \"You are a medical clinical-summary assistant.\\n\\n\" +\n          \"Create a structured clinical summary from the patient's transcript.\\n\\n\" +\n          \"IMPORTANT RULES:\\n\" +\n          \"1. Use ONLY information explicitly stated in the transcript.\\n\" +\n          \"2. Do not invent information.\\n\" +\n          \"3. Do not diagnose any disease.\\n\" +\n          \"4. Do not infer medical history that is not stated.\\n\" +\n          \"5. The output language MUST be English.\\n\" +\n          \"6. Keep the patient's original meaning.\\n\" +\n          \"7. Return exactly ONE valid JSON object and NOTHING ELSE.\\n\" +\n          \"8. Do not use markdown or code fences.\\n\\n\" +\n          \"Create ONLY these fields:\\n\" +\n          \"chief_complaint, duration, severity, relevant_history, clinical_summary.\\n\\n\" +\n          \"For information that is not explicitly available, use null.\\n\\n\" +\n          \"Return exactly this structure:\\n\" +\n          \"{\\\"chief_complaint\\\":null,\\\"duration\\\":null,\\\"severity\\\":null,\\\"relevant_history\\\":null,\\\"clinical_summary\\\":null}\"\n      },\n      {\n        role: \"user\",\n        content:\n          \"PATIENT TRANSCRIPT:\\n\" +\n          $(\"Speech-to-Text\").first().json.text\n      }\n    ],\n    temperature: 0.1,\n    max_tokens: 1000\n  }\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2208,
+        208
+      ],
+      "id": "71053ee1-7942-4773-b667-fc7294278383",
+      "name": "Clinical-Summary",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "Transcribe_URL",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Ask-Token",
+              "value": "X-ASK"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "audio"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -528,
+        640
+      ],
+      "id": "c35f40c4-bd85-4188-99e8-20a387bd922c",
+      "name": "Speech-to-Text"
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $json.choices?.[0]?.message?.content;\n\nif (!content) {\n  return [{\n    json: {\n      error: \"Clinical Summary returned no content\"\n    }\n  }];\n}\n\ntry {\n  const cleaned = content\n    .replace(/^```json\\s*/i, \"\")\n    .replace(/^```\\s*/i, \"\")\n    .replace(/\\s*```$/i, \"\")\n    .trim();\n\n  const result = JSON.parse(cleaned);\n\n  return [{\n    json: result\n  }];\n} catch (error) {\n  return [{\n    json: {\n      error: \"Clinical Summary returned invalid JSON\",\n      raw_content: content\n    }\n  }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2416,
+        192
+      ],
+      "id": "8e55124b-e114-42fc-b64f-f8807c222345",
+      "name": "Parse Clinical Summary"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2608,
+        240
+      ],
+      "id": "b294d23a-64b1-4403-9713-617a16b2c47c",
+      "name": "Clinical Summary + Symptoms"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2832,
+        304
+      ],
+      "id": "7abc038f-6568-48db-bc48-381169d2bf77",
+      "name": "Clinical Summary + Emergency Check"
+    },
+    {
+      "parameters": {
+        "jsCode": "const clinical = $input.first().json;\n\nconst diseaseMatches = $(\"Disease-Matching\")\n  .all()\n  .map(item => item.json)\n  .filter(item => item.name);\n\nreturn [\n  {\n    json: {\n      ...clinical,\n\n      patient_id: $input.first().json.patient_id,\n      consultation_id: $input.first().json.consultation_id,\n\n      disease_matches: diseaseMatches\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3056,
+        304
+      ],
+      "id": "55d00e91-d013-4a7d-85ea-deed8faa1a6c",
+      "name": "Input Disease-Matching to Clinical Summary"
+    },
+    {
+      "parameters": {
+        "content": "## I'm a note \nchange vi to language"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -192,
+        912
+      ],
+      "typeVersion": 1,
+      "id": "b5791596-332e-4894-8489-8f5632a4dffd",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "GBlFfITvQOmxiP4r",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/GBlFfITvQOmxiP4r",
+          "cachedResultName": "Patient Administration"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "text": "={{ $json.text }} ",
+            "patient_id": "={{ $json.patient_id }} "
+          },
+          "matchingColumns": [
+            "text"
+          ],
+          "schema": [
+            {
+              "id": "text",
+              "displayName": "text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "patient_id",
+              "displayName": "patient_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        16,
+        768
+      ],
+      "id": "77aa1a4e-79bb-49e2-b24f-06e5d6fb379d",
+      "name": "Call 'Patient Administration'",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2896,
+        512
+      ],
+      "id": "698f81e4-7772-40ed-b2d6-c9ec2ecc30c4",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE public.patient_consultations\nSET\n    chief_complaint = {{ $json.chief_complaint ? \"'\" + $json.chief_complaint.replace(/'/g, \"''\") + \"'\" : \"NULL\" }},\n    duration = {{ $json.duration ? \"'\" + $json.duration.replace(/'/g, \"''\") + \"'\" : \"NULL\" }},\n    severity = {{ $json.severity ? \"'\" + $json.severity.replace(/'/g, \"''\") + \"'\" : \"NULL\" }},\n    relevant_history = {{ $json.relevant_history ? \"'\" + $json.relevant_history.replace(/'/g, \"''\") + \"'\" : \"NULL\" }},\n    clinical_summary = {{ $json.clinical_summary ? \"'\" + $json.clinical_summary.replace(/'/g, \"''\") + \"'\" : \"NULL\" }},\n    emergency = {{ $json.emergency }},\n    urgency = {{ $json.urgency ? \"'\" + $json.urgency.replace(/'/g, \"''\") + \"'\" : \"NULL\" }},\n    red_flags = '{{ JSON.stringify($json.red_flags) }}'::jsonb,\n    emergency_reason = {{ $json.reason ? \"'\" + $json.reason.replace(/'/g, \"''\") + \"'\" : \"NULL\" }}\nWHERE consultation_id = '{{ $json.consultation_id }}'\nRETURNING consultation_id, patient_id;",
+        "options": {
+          "queryReplacement": "="
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        3232,
+        304
+      ],
+      "id": "ffe0a4af-7e23-41f5-9169-2344d65fcbbf",
+      "name": "SaveFinal",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "TKSeFDOOaXMczEDD",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const finalResult = $(\"Input Disease-Matching to Clinical Summary\").first().json;\n\nconst consultationId = finalResult.consultation_id;\nconst diseaseMatches = finalResult.disease_matches || [];\n\nreturn diseaseMatches.map(disease => ({\n  json: {\n    consultation_id: consultationId,\n    disease_id: disease.id,\n    matching_symptoms: Number(disease.matching_symptoms),\n    matched_symptoms: disease.matched_symptoms\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3424,
+        304
+      ],
+      "id": "58cce2d1-c5d9-4763-8034-80d18b0593b9",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [\n  {\n    json: {\n      consultation_id: $(\"Save Disease Matches\").first().json.consultation_id\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3760,
+        -16
+      ],
+      "id": "6ae28464-3ce8-4cbe-a12a-714cc369e262",
+      "name": "Prepare"
+    },
+    {
+      "parameters": {
+        "jsCode": "const finalResult = $input.first().json;\n\nconst diseaseMatches = finalResult.disease_matches || [];\n\nreturn diseaseMatches.map(disease => ({\n  json: {\n    consultation_id: finalResult.consultation_id,\n    disease_id: disease.id,\n    matching_symptoms: Number(disease.matching_symptoms),\n    matched_symptoms: disease.matched_symptoms\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3280,
+        16
+      ],
+      "id": "492d97aa-4baa-4bdc-9e9d-878eb2f9a525",
+      "name": "Prepare Disease Matches",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO public.consultation_disease_matches (\n    consultation_id,\n    disease_id,\n    matching_symptoms,\n    matched_symptoms\n)\nVALUES (\n    $1,\n    $2,\n    $3,\n    $4::jsonb\n)\nON CONFLICT (consultation_id, disease_id)\nDO UPDATE SET\n    matching_symptoms = EXCLUDED.matching_symptoms,\n    matched_symptoms = EXCLUDED.matched_symptoms\nRETURNING\n    consultation_id,\n    disease_id,\n    matching_symptoms,\n    matched_symptoms;",
+        "options": {
+          "queryReplacement": "=$1\n{{ $json.consultation_id }}\n\n$2\n{{ $json.disease_id }}\n\n$3\n{{ $json.matching_symptoms }}\n\n$4\n{{ JSON.stringify($json.matched_symptoms) }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        3568,
+        -16
+      ],
+      "id": "80368965-d99b-48fb-ad32-bb8e290496e3",
+      "name": "Save Disease Matches",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "TKSeFDOOaXMczEDD",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "FINJ5AmjjyyagUHe",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/FINJ5AmjjyyagUHe",
+          "cachedResultName": "Obsidian"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "consultation_id": "={{ $json.consultation_id }}"
+          },
+          "matchingColumns": [
+            "consultation_id"
+          ],
+          "schema": [
+            {
+              "id": "consultation_id",
+              "displayName": "consultation_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        3936,
+        -16
+      ],
+      "name": "Call Obsidian",
+      "id": "35426b70-5ba3-4a8e-b4b0-b7a235bcb3be"
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch",
+        "useDataOfInput": 2
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3216,
+        704
+      ],
+      "id": "4d9171e0-3e0c-43f3-aedd-d14a94ff1cbe",
+      "name": "Wait for saving Symptoms"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    pc.consultation_id,\n    pc.patient_id,\n    pc.consultation_date,\n    COUNT(cs.symptom_id) AS symptom_count\nFROM public.patient_consultations pc\nLEFT JOIN public.consultation_symptoms cs\n    ON cs.consultation_id = pc.consultation_id\nWHERE pc.patient_id = $1\nGROUP BY\n    pc.consultation_id,\n    pc.patient_id,\n    pc.consultation_date\nORDER BY pc.consultation_date DESC;",
+        "options": {
+          "queryReplacement": "={{$json.query.patient_id}}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        -752,
+        864
+      ],
+      "id": "06eab93c-6f69-4694-ae70-b81a12a9b576",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "TKSeFDOOaXMczEDD",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $input.all().map(item => item.json) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -528,
+        864
+      ],
+      "id": "34dd1e0a-80a0-4b13-b042-ca272985d783",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "path": "ptalk/patient/history",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -976,
+        864
+      ],
+      "id": "6f817e11-f093-410b-b12f-a46c13a9ae57",
+      "name": "History",
+      "webhookId": "11f73e97-665b-4473-8f04-49b9703f8f8f"
+    },
+    {
+      "parameters": {
+        "path": "ptalk/patient/consultation",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -976,
+        1168
+      ],
+      "id": "1b8e3c6c-2e08-455a-8af7-be02cfffa8a4",
+      "name": "OneConsultation",
+      "webhookId": "11f73e97-665b-4473-8f04-49b9703f8f8f"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    pc.consultation_id,\n    pc.patient_id,\n    pc.consultation_date,\n    pc.language,\n    pc.transcript,\n    pc.chief_complaint,\n    pc.duration,\n    pc.severity,\n    pc.relevant_history,\n    pc.clinical_summary,\n    pc.emergency,\n    pc.urgency,\n    pc.red_flags,\n    pc.emergency_reason,\n\n    COALESCE(\n        (\n            SELECT json_agg(\n                json_build_object(\n                    'symptom_id', cs.symptom_id,\n                    'symptom', s.name,\n                    'evidence', cs.evidence,\n                    'certainty', cs.certainty\n                )\n                ORDER BY cs.symptom_id\n            )\n            FROM public.consultation_symptoms cs\n            JOIN public.symptoms s\n                ON s.id = cs.symptom_id\n            WHERE cs.consultation_id = pc.consultation_id\n        ),\n        '[]'::json\n    ) AS symptoms,\n\n    COALESCE(\n        (\n            SELECT json_agg(\n                json_build_object(\n                    'disease_id', cdm.disease_id,\n                    'disease', d.name,\n                    'matching_symptoms', cdm.matching_symptoms,\n                    'matched_symptoms', cdm.matched_symptoms\n                )\n                ORDER BY cdm.matching_symptoms DESC, cdm.disease_id\n            )\n            FROM public.consultation_disease_matches cdm\n            JOIN public.diseases d\n                ON d.id = cdm.disease_id\n            WHERE cdm.consultation_id = pc.consultation_id\n        ),\n        '[]'::json\n    ) AS disease_matches\n\nFROM public.patient_consultations pc\nWHERE pc.consultation_id = $1;",
+        "options": {
+          "queryReplacement": "={{ $json.query.consultation_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        -768,
+        1168
+      ],
+      "id": "e47aec6e-b4f5-4967-834c-4dd4f01cd7c5",
+      "name": "Execute a SQL query1",
+      "credentials": {
+        "postgres": {
+          "id": "TKSeFDOOaXMczEDD",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $input.first().json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -576,
+        1152
+      ],
+      "id": "69baf5a3-5b5f-4381-ab10-bb212d14f47e",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    pc.patient_id,\n    COUNT(*) AS consultation_count,\n    MAX(pc.consultation_date) AS last_consultation,\n\n    CASE\n        WHEN COUNT(*) FILTER (\n            WHERE pc.emergency = true\n        ) > 0\n        THEN 1\n        ELSE 0\n    END AS emergency\n\nFROM public.patient_consultations pc\n\nGROUP BY pc.patient_id\n\nORDER BY last_consultation DESC;",
+        "options": {
+          "queryReplacement": "="
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        -784,
+        1392
+      ],
+      "id": "8ef4e7e4-f17f-4a1f-9d64-928e8a5defcd",
+      "name": "Execute a SQL query2",
+      "credentials": {
+        "postgres": {
+          "id": "TKSeFDOOaXMczEDD",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $input.first().json }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -592,
+        1376
+      ],
+      "id": "c17a3c1f-7046-4c07-bb2f-01ec27420c10",
+      "name": "Respond to Webhook2"
+    },
+    {
+      "parameters": {
+        "path": "ptalk/team/patients",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -992,
+        1392
+      ],
+      "id": "b8ea3efd-3e78-4ca9-8d01-2a94e2d3c262",
+      "name": "Medical Team - Patients",
+      "webhookId": "11f73e97-665b-4473-8f04-49b9703f8f8f"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    pc.patient_id,\n    pc.consultation_id,\n    pc.consultation_date,\n\n    cs.symptom_id,\n    s.name AS symptom,\n\n    cdm.disease_id,\n    d.name AS disease,\n    cdm.matching_symptoms\n\nFROM public.patient_consultations pc\n\nLEFT JOIN public.consultation_symptoms cs\n    ON cs.consultation_id = pc.consultation_id\n\nLEFT JOIN public.symptoms s\n    ON s.id = cs.symptom_id\n\nLEFT JOIN public.consultation_disease_matches cdm\n    ON cdm.consultation_id = pc.consultation_id\n\nLEFT JOIN public.diseases d\n    ON d.id = cdm.disease_id\n\nORDER BY\n    pc.consultation_date DESC,\n    pc.patient_id,\n    cs.symptom_id,\n    cdm.disease_id;",
+        "options": {
+          "queryReplacement": "="
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        -800,
+        1600
+      ],
+      "id": "2682533c-8736-488a-a8f7-66722094ec9a",
+      "name": "Execute a SQL query3",
+      "credentials": {
+        "postgres": {
+          "id": "TKSeFDOOaXMczEDD",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($input.all().map(item => item.json)) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        -608,
+        1584
+      ],
+      "id": "abe177e1-7ef1-4ee2-ae94-afbf7a778425",
+      "name": "Respond to Webhook3"
+    },
+    {
+      "parameters": {
+        "path": "=ptalk/team/knowledge-graph",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -1008,
+        1600
+      ],
+      "id": "77b44fe5-6c84-446b-b030-fee95b5ec83f",
+      "name": "Knowledge Graph",
+      "webhookId": "11f73e97-665b-4473-8f04-49b9703f8f8f"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    id,\n    email,\n    role,\n    status,\n    patient_id\nFROM public.ptalk_users\nWHERE email = 'admin@ptalk.local';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        192,
+        112
+      ],
+      "id": "42a77790-475e-4218-b56b-4a5554e9a3d5",
+      "name": "Delete everything from DB1",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "TKSeFDOOaXMczEDD",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ptalk-consultation",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": false
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -976,
+        464
+      ],
+      "id": "a6e71480-2d16-4b92-b58c-c9e8c06c4562",
+      "name": "Website-Trigger",
+      "webhookId": "11f73e97-665b-4473-8f04-49b9703f8f8f"
+    },
+    {
+      "parameters": {
+        "respondWith": "binary",
+        "responseDataSource": "set",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        4160,
+        -16
+      ],
+      "id": "624e49f4-8544-4296-910a-de720a4a9bbd",
+      "name": "Respond to Webhook4"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9f6203b4-2c5c-46d5-8afc-245b1472b2a9",
+              "name": "patient_id",
+              "value": "={{ $('Website-Trigger').item.json.body.patient_id }}",
+              "type": "string"
+            },
+            {
+              "id": "1860546b-53e5-45a1-b6d8-0bedf8fd77d7",
+              "name": "text",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -336,
+        752
+      ],
+      "id": "5e0fb1f0-156c-452b-92d7-5d66f8e3e39e",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Cleanup",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Gemini1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge2": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Saving Symptoms to consultation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Symptom Query": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check DB-ID": {
+      "main": [
+        [
+          {
+            "node": "Disease-Matching",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Clinical Summary + Symptoms",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Cleanup": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Check DB-ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Disease-Matching": {
+      "main": [
+        [
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Gemini1": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "EmergencyCheck": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge3": {
+      "main": [
+        [
+          {
+            "node": "EmergencyCheck",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Clinical Summary + Emergency Check",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Clinical-Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Speech-to-Text": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "Symptom Query",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clinical-Summary": {
+      "main": [
+        [
+          {
+            "node": "Parse Clinical Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Clinical Summary": {
+      "main": [
+        [
+          {
+            "node": "Clinical Summary + Symptoms",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clinical Summary + Symptoms": {
+      "main": [
+        [
+          {
+            "node": "Clinical Summary + Emergency Check",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clinical Summary + Emergency Check": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Saving Symptoms to consultation": {
+      "main": [
+        [
+          {
+            "node": "Wait for saving Symptoms",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Input Disease-Matching to Clinical Summary": {
+      "main": [
+        [
+          {
+            "node": "SaveFinal",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Wait for saving Symptoms",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Call 'Patient Administration'": {
+      "main": [
+        [
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Input Disease-Matching to Clinical Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SaveFinal": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        []
+      ]
+    },
+    "Prepare": {
+      "main": [
+        [
+          {
+            "node": "Call Obsidian",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Disease Matches": {
+      "main": [
+        [
+          {
+            "node": "Save Disease Matches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Disease Matches": {
+      "main": [
+        [
+          {
+            "node": "Prepare",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait for saving Symptoms": {
+      "main": [
+        [
+          {
+            "node": "Prepare Disease Matches",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "History": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OneConsultation": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query2": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Medical Team - Patients": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query3": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Knowledge Graph": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Website-Trigger": {
+      "main": [
+        [
+          {
+            "node": "Speech-to-Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Obsidian": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Call 'Patient Administration'",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "f78ca589-91c5-4ff6-960a-adebd6356847",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d73ec44ec989ac1332d6c05f2ece59e3ed4f920ab644be4db3a0b842cbd338d6"
+  },
+  "nodeGroups": [],
+  "id": "P6YGhBareMTpI8SG",
+  "tags": []
+}
