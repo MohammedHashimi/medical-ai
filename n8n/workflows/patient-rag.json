@@ -1,0 +1,374 @@
+{
+  "name": "Patient RAG",
+  "nodes": [
+    {
+      "parameters": {
+        "fileSelector": "={{ \"/data/obsidian/Patients/\" + $json.body.patient_id + \"/Patient.md\" }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        432,
+        0
+      ],
+      "id": "b40294a0-5cca-498e-8668-04ccbd3d164a",
+      "name": "Read Patient.md"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        656,
+        0
+      ],
+      "id": "239473f9-3bf6-4907-a6e6-4c3e2c53b00e",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "consultation_paths",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "ea999e07-edd2-4386-96fd-813d878a09f7",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => ({\n  json: {\n    consultation_path:\n      `/data/obsidian/Patients/${item.json.consultation_paths}.md`\n  }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1344,
+        0
+      ],
+      "id": "e3bc7218-37ee-433b-bfd8-87cfc5210697",
+      "name": "Build Consultation Path"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\n\n// Suche den Markdown-Inhalt in allen String-Feldern\nconst text = Object.values(input)\n  .find(value =>\n    typeof value === 'string' &&\n    value.includes('/Consultations/')\n  ) || '';\n\nif (!text) {\n  return [{\n    json: {\n      error: 'Didnt find /Consultations/ in Patient.md',\n      available_fields: Object.keys(input)\n    }\n  }];\n}\n\n// Extract Consultation-Paths\nconst matches = [\n  ...text.matchAll(/\\[\\[([^\\]]*\\/Consultations\\/[^\\]]+)\\]\\]/g)\n];\n\nconst consultation_paths = matches.map(match => match[1]);\n\n// Daten aus dem POST Webhook holen\nconst webhookData = $('Webhook').first().json.body;\n\nreturn [{\n  json: {\n    patient_id: webhookData.patient_id,\n    question: webhookData.question,\n    consultation_paths\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        896,
+        0
+      ],
+      "id": "b591454d-764f-4f19-9183-826eed66fa02",
+      "name": "Extract Consultations"
+    },
+    {
+      "parameters": {
+        "fileSelector": "={{ $json.consultation_path }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        1568,
+        0
+      ],
+      "id": "d6484580-cc28-4643-8e21-0e97ab5a5145",
+      "name": "Read Files"
+    },
+    {
+      "parameters": {
+        "operation": "text",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        1792,
+        0
+      ],
+      "id": "82a210cc-01da-47d9-bdf2-484a25acb9d5",
+      "name": "Extract from Consultations"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst webhookData = $('Webhook').first().json.body;\n\nconst patientId = webhookData.patient_id;\nconst question = webhookData.question;\n\nconst consultations = items.map((item, index) => {\n\n  const text = Object.values(item.json)\n    .find(value =>\n      typeof value === 'string' &&\n      value.includes('# Clinical Consultation')\n    ) || '';\n\n  return `### Consultation ${index + 1}\n\n${text}`;\n\n}).join('\\n\\n');\n\nreturn [{\n  json: {\n    patient_id: patientId,\n    question: question,\n    context: `Patient ID: ${patientId}\n\nThe following consultation records belong to this patient:\n\n${consultations}`\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        0
+      ],
+      "id": "1d8e2463-5ea8-417c-8b26-ca24d80161ad",
+      "name": "Build RAG Context"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "API_URL",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer_GEMMA"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\n{\n  model: \"gemma-4\",\n  temperature: 0.1,\n  messages: [\n    {\n      role: \"system\",\n      content: `Tell PTalk AI what you are experiencing. You can describe your symptoms or ask a health-related question.\n\nHello. I’m PTalk AI. How can I help you today?\nWhat can help me with my pain\nThe provided records do not contain information regarding pain or treatments for pain.\nwhat can help me with my numbness\nThe provided records do not contain information regarding what can help with your numbness.\nRESPONSE LENGTH:\n\nKeep every response short and conversational.\n\n- Normally answer in 1–3 short sentences.\n- Maximum 80 words unless the patient explicitly asks for a detailed explanation.\n- Do not use long introductions or disclaimers.\n- Do not repeat information already given in the conversation.\n- Do not create long sections, numbered lists, or bullet lists unless absolutely necessary.\n- Ask at most 1–2 follow-up questions at a time.\n- Focus on the patient's current question.\n\nFor emergency or red-flag symptoms:\n- Clearly state that urgent medical attention is needed.\n- Keep the response concise.\n- Do not provide a long explanation of possible diseases.\n- Do not list multiple possible diagnoses unless specifically asked.\n\nIf the patient asks \"what can I do?\":\n- Give the most relevant immediate advice in 1–3 short sentences.\n- If more information is needed, ask one focused follow-up question.`\n    },\n    {\n      role: \"user\",\n      content:\n        \"Patient ID: \" + $json.patient_id +\n        \"\\n\\nQuestion:\\n\" + $json.question +\n        \"\\n\\nPatient consultation records:\\n\\n\" +\n        $json.context\n    }\n  ]\n}\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2208,
+        0
+      ],
+      "id": "b143a853-fcda-4729-9df5-a72087f95a2b",
+      "name": "Gemma RAG",
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $json.choices?.[0]?.message?.content ?? '';\n\nreturn [{\n  json: {\n    patient_id: $('Build RAG Context').first().json.patient_id,\n    question: $('Build RAG Context').first().json.question,\n    answer: content\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2656,
+        16
+      ],
+      "id": "fdbc1ca1-6603-4cf3-beaa-c7c00bd24dde",
+      "name": "Cleanup"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "4e862160-e6e5-4d41-8ca4-6c5cb197b1d2",
+              "leftValue": "={{ $json.choices[0].message.content }}",
+              "rightValue": "No patient",
+              "operator": {
+                "type": "string",
+                "operation": "startsWith"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2400,
+        0
+      ],
+      "id": "46773083-e6e2-4ab1-a821-144aa670d98f",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ptalk/patient/ask",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "799acbe8-0785-47c5-8e7b-a000da376df8",
+      "name": "Webhook",
+      "webhookId": "648d08ec-6959-44ca-9fa7-ea7ecae5bb8a"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({\n  answer: String($json.answer || \"\")\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        2880,
+        16
+      ],
+      "id": "12f72f26-420e-4a8e-b9e2-7049b627025f",
+      "name": "Respond to Webhook"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Read Patient.md": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Gemma RAG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Extract Consultations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Build Consultation Path",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Consultation Path": {
+      "main": [
+        [
+          {
+            "node": "Read Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Consultations": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Files": {
+      "main": [
+        [
+          {
+            "node": "Extract from Consultations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from Consultations": {
+      "main": [
+        [
+          {
+            "node": "Build RAG Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build RAG Context": {
+      "main": [
+        [
+          {
+            "node": "Gemma RAG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemma RAG": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cleanup": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Cleanup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Read Patient.md",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "5a8774ff-ca29-46be-8911-8f4b54e7d43d",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "d73ec44ec989ac1332d6c05f2ece59e3ed4f920ab644be4db3a0b842cbd338d6"
+  },
+  "nodeGroups": [],
+  "id": "WL19dC39wvIE22DV",
+  "tags": []
+}
