@@ -1,0 +1,354 @@
+{
+  "name": "Obsidian",
+  "nodes": [
+    {
+      "parameters": {
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "consultation_id",
+              "type": "any"
+            }
+          ]
+        }
+      },
+      "id": "57e4e51a-baea-45d8-a507-53a5feea5961",
+      "typeVersion": 1.1,
+      "name": "Start",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        4000,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    consultation_id,\n    symptom_id,\n    evidence,\n    certainty\nFROM public.consultation_symptoms\nWHERE consultation_id = $1\nORDER BY symptom_id;",
+        "options": {
+          "queryReplacement": "={{ $json.consultation_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        4336,
+        272
+      ],
+      "id": "4e812935-8fcf-453a-92f0-235b11b90617",
+      "name": "Load Consultation for Obsidian",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "TKSeFDOOaXMczEDD",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\n\nconst formatDate = new Date(data.consultation_date)\n  .toISOString()\n  .slice(0, 10);\n\nconst symptoms = (data.symptoms || [])\n  .map(s => {\n    const symptomName = String(s.symptom || '').trim();\n\n    return (\n      `- [[${symptomName}]] (ID: ${s.symptom_id})\\n` +\n      `  - Evidence: ${s.evidence}\\n` +\n      `  - Certainty: ${s.certainty}`\n    );\n  })\n  .join('\\n');\n\nconst redFlags = (data.red_flags || [])\n  .map(r =>\n    `- **${r.symptom}** — ${r.reason}`\n  )\n  .join('\\n');\n\nconst diseases = (data.disease_matches || [])\n  .map(d => {\n    const diseaseName = String(d.disease || '').trim();\n\n    return `- [[${diseaseName}]] — ${d.matching_symptoms} matching symptoms`;\n  })\n  .join('\\n');\n\nconst markdown = `# Clinical Consultation\n\n## Consultation\n\n- Consultation ID: ${data.consultation_id}\n- Patient ID: ${data.patient_id}\n- Date: ${formatDate}\n- Language: ${data.language}\n\n## Chief Complaint\n\n${data.chief_complaint || 'Not specified'}\n\n## Clinical Summary\n\n${data.clinical_summary || 'Not specified'}\n\n## Duration\n\n${data.duration || 'Not specified'}\n\n## Severity\n\n${data.severity || 'Not specified'}\n\n## Relevant History\n\n${data.relevant_history || 'Not specified'}\n\n## Symptoms\n\n${symptoms || 'None recorded'}\n\n## Emergency Assessment\n\n- Emergency: **${data.emergency ? 'YES' : 'NO'}**\n- Urgency: **${data.urgency || 'Not specified'}**\n\n### Red Flags\n\n${redFlags || 'None recorded'}\n\n### Emergency Reason\n\n${data.emergency_reason || 'Not specified'}\n\n## Disease Matches\n\n> These are dataset-based symptom matches and are **not a medical diagnosis**.\n\n${diseases || 'None recorded'}\n\n## Original Transcript\n\n${data.transcript || 'Not available'}\n`;\n\nreturn [\n  {\n    json: {\n      ...data,\n      obsidian_filename: `${formatDate}-${data.consultation_id}.md`,\n      obsidian_markdown: markdown\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5120,
+        240
+      ],
+      "id": "5547e911-c835-4db3-bc86-725824688af4",
+      "name": "Build Obsidian Note"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT json_agg(\n    json_build_object(\n        'symptom_id', cs.symptom_id,\n        'symptom', s.name,\n        'evidence', cs.evidence,\n        'certainty', cs.certainty\n    )\n    ORDER BY cs.symptom_id\n) AS symptoms\nFROM public.consultation_symptoms cs\nJOIN public.symptoms s\n    ON s.id = cs.symptom_id\nWHERE cs.consultation_id = '{{ $json.consultation_id }}';",
+        "options": {
+          "queryReplacement": "="
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        4336,
+        432
+      ],
+      "id": "571a874e-e1d2-4574-87e6-83bef7bd4d36",
+      "name": "Load Symptoms for Obsidian",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "TKSeFDOOaXMczEDD",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT json_agg(\n    json_build_object(\n        'disease_id', cdm.disease_id,\n        'disease', d.name,\n        'matching_symptoms', cdm.matching_symptoms,\n        'matched_symptoms', cdm.matched_symptoms\n    )\n    ORDER BY cdm.matching_symptoms DESC, cdm.disease_id\n) AS disease_matches\nFROM public.consultation_disease_matches cdm\nJOIN public.diseases d\n    ON d.id = cdm.disease_id\nWHERE cdm.consultation_id = '{{ $json.consultation_id }}';",
+        "options": {
+          "queryReplacement": "="
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        4336,
+        112
+      ],
+      "id": "e5dd49ca-15d4-4918-957b-13e99fec27b3",
+      "name": "Load Disease-Match for Obsidian",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "TKSeFDOOaXMczEDD",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 3,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        4640,
+        240
+      ],
+      "id": "4dc5aa9c-f3bf-4743-95dc-da97af829970",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    pc.consultation_id,\n    pc.patient_id,\n    pc.consultation_date,\n    pc.language,\n    pc.transcript,\n    pc.chief_complaint,\n    pc.duration,\n    pc.severity,\n    pc.relevant_history,\n    pc.clinical_summary,\n    pc.emergency,\n    pc.urgency,\n    pc.red_flags,\n    pc.emergency_reason,\n\n    COALESCE(\n        (\n            SELECT json_agg(\n                json_build_object(\n                    'symptom_id', cs.symptom_id,\n                    'symptom', s.name,\n                    'evidence', cs.evidence,\n                    'certainty', cs.certainty\n                )\n                ORDER BY cs.symptom_id\n            )\n            FROM public.consultation_symptoms cs\n            JOIN public.symptoms s\n                ON s.id = cs.symptom_id\n            WHERE cs.consultation_id = pc.consultation_id\n        ),\n        '[]'::json\n    ) AS symptoms,\n\n    COALESCE(\n        (\n            SELECT json_agg(\n                json_build_object(\n                    'disease_id', cdm.disease_id,\n                    'disease', d.name,\n                    'matching_symptoms', cdm.matching_symptoms,\n                    'matched_symptoms', cdm.matched_symptoms\n                )\n                ORDER BY cdm.matching_symptoms DESC, cdm.disease_id\n            )\n            FROM public.consultation_disease_matches cdm\n            JOIN public.diseases d\n                ON d.id = cdm.disease_id\n            WHERE cdm.consultation_id = pc.consultation_id\n        ),\n        '[]'::json\n    ) AS disease_matches\n\nFROM public.patient_consultations pc\nWHERE pc.consultation_id = $1;",
+        "options": {
+          "queryReplacement": "={{ $('Start').first().json.consultation_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        4864,
+        240
+      ],
+      "id": "cedf4a91-0231-45d4-a317-1b378f34383e",
+      "name": "Load Complete for Obsidian",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "TKSeFDOOaXMczEDD",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "toText",
+        "sourceProperty": "obsidian_markdown",
+        "options": {
+          "encoding": "utf8",
+          "fileName": "={{ $json.consultation_id }}"
+        }
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        5328,
+        240
+      ],
+      "id": "476a08a4-91d5-4bf5-a291-25dba5ba43d4",
+      "name": "Convert to File"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "={{ \"/data/obsidian/Patients/\" + $('Load Complete for Obsidian').first().json.patient_id + \"/Consultations/\" + $('Load Complete for Obsidian').first().json.consultation_id + \".md\" }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        6000,
+        256
+      ],
+      "id": "73097610-8496-47f5-9233-c40dab86fcd1",
+      "name": "Read/Write Files from Disk"
+    },
+    {
+      "parameters": {
+        "command": "=mkdir -p \"/data/obsidian/Patients/{{$('Build Obsidian Note').item.json.patient_id}}/Consultations\""
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        5568,
+        272
+      ],
+      "id": "a2c1403a-0335-4dda-a64a-4a6fa5420cd1",
+      "name": "Create Patient Folder"
+    },
+    {
+      "parameters": {
+        "mode": "chooseBranch"
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        5680,
+        48
+      ],
+      "id": "5a11245f-2974-4736-93eb-2b9912dd86f8",
+      "name": "Merge1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Start": {
+      "main": [
+        [
+          {
+            "node": "Load Consultation for Obsidian",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Load Symptoms for Obsidian",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Load Disease-Match for Obsidian",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Disease-Match for Obsidian": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Consultation for Obsidian": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Load Symptoms for Obsidian": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Build Obsidian Note": {
+      "main": [
+        [
+          {
+            "node": "Convert to File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Load Complete for Obsidian",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load Complete for Obsidian": {
+      "main": [
+        [
+          {
+            "node": "Build Obsidian Note",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Patient Folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        []
+      ]
+    },
+    "Create Patient Folder": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "9789d830-b630-44b1-8ef1-5a48e5f329df",
+  "meta": {
+    "instanceId": "d73ec44ec989ac1332d6c05f2ece59e3ed4f920ab644be4db3a0b842cbd338d6"
+  },
+  "nodeGroups": [],
+  "id": "FINJ5AmjjyyagUHe",
+  "tags": []
+}
