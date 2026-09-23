@@ -28,6 +28,15 @@
                 "type": "string",
                 "operation": "notContains"
               }
+            },
+            {
+              "id": "48b6bb59-72bc-45f6-90af-98fd7f4514a8",
+              "leftValue": "={{ $json.choices[0].message.content }}",
+              "rightValue": "I cannot",
+              "operator": {
+                "type": "string",
+                "operation": "notStartsWith"
+              }
             }
           ],
           "combinator": "and"
@@ -39,8 +48,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        368,
-        496
+        304,
+        336
       ],
       "id": "42c773e6-5ac2-45bf-885e-22f0c8cdef81",
       "name": "If"
@@ -51,23 +60,10 @@
       "typeVersion": 3.2,
       "position": [
         -80,
-        496
+        336
       ],
       "id": "e65f10e8-2113-4dc9-a3cb-40fc5ce4a999",
       "name": "Merge"
-    },
-    {
-      "parameters": {
-        "content": "## I'm a note \nWorkflow for transcription."
-      },
-      "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        -640,
-        432
-      ],
-      "typeVersion": 1,
-      "id": "b2f521ac-54da-43d7-981c-dc0a7e989c39",
-      "name": "Sticky Note"
     },
     {
       "parameters": {
@@ -146,8 +142,8 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.7,
       "position": [
-        -304,
-        400
+        -336,
+        336
       ],
       "id": "7457efa4-5211-440b-9217-5c4378d3ec2d",
       "name": "Symptom Query",
@@ -191,7 +187,7 @@
       "typeVersion": 2,
       "position": [
         816,
-        448
+        416
       ],
       "id": "6a385b2e-f6fa-44ce-b908-4592f1344eb0",
       "name": "Check DB-ID"
@@ -203,8 +199,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        592,
-        496
+        512,
+        336
       ],
       "id": "59096e0b-162c-46c7-8c9f-8f057c15f22c",
       "name": "Cleanup"
@@ -223,8 +219,14 @@
           ]
         },
         "sendBody": true,
+        "contentType": "=json",
         "specifyBody": "json",
-        "jsonBody": "={ \"model\": \"gemma-4\", \"messages\": [ { \"role\": \"system\", \"content\": \"You are a medical symptom extraction assistant. Return exactly ONE valid JSON object and NOTHING ELSE. No markdown. No code fences. No explanations. No text before or after the JSON.\\n\\nThe patient transcript may be in Vietnamese. The available symptom list is in English.\\n\\nUnderstand the Vietnamese transcript and match symptoms ONLY to exact symptom names from the provided list.\\n\\nRules:\\n1. Understand Vietnamese medical descriptions and everyday Vietnamese expressions.\\n2. Translate the meaning internally into English before matching.\\n3. ONLY select symptoms that exist in the provided symptom list.\\n4. Use the symptom name EXACTLY as it appears in the symptom list.\\n5. NEVER invent a symptom.\\n6. Do not diagnose the patient.\\n7. Do not infer a disease.\\n8. Only extract symptoms actually mentioned or clearly described.\\n9. If the patient explicitly denies a symptom, do NOT include it.\\n10. If a statement cannot be reliably matched to the symptom list, leave it out.\\n11. Keep the original Vietnamese evidence in the evidence field.\\n12. certainty must be exactly either certain or not certain.\\n13. Return exactly one JSON object.\\n\\nIMPORTANT ID RULE:\\n14. Every selected symptom MUST contain symptom_id.\\n15. The symptom_id MUST be copied EXACTLY from the id field of the SAME symptom object in AVAILABLE SYMPTOMS.\\n16. The symptom name and symptom_id MUST always come from the SAME object.\\n17. NEVER invent, guess, calculate, modify, or approximate a symptom_id.\\n18. NEVER combine the name from one symptom object with the ID from another symptom object.\\n19. Before returning the answer, verify that every symptom_id matches the exact symptom name.\\n\\nIMPORTANT SYMPTOM MATCHING RULE:\\n20. NEVER create a descriptive symptom name such as numbness in arm or numbness.\\n21. If the patient describes numbness, tingling, loss of sensation, or a similar sensation, select the closest matching symptom ONLY from AVAILABLE SYMPTOMS.\\n22. The output symptom name MUST be exactly one of the provided name values.\\n23. Do NOT translate, paraphrase, shorten, expand, or change the symptom name.\\n24. If multiple available symptoms could match, choose the most specific valid symptom from AVAILABLE SYMPTOMS.\\n25. If no valid symptom exists in AVAILABLE SYMPTOMS, leave the symptom out.\\n\\nExample:\\nIf AVAILABLE SYMPTOMS contains an object with id 6 and name dizziness, the output MUST use symptom_id 6 and symptom dizziness.\\nIf AVAILABLE SYMPTOMS contains an object with id 167 and name paresthesia, the output MUST use symptom_id 167 and symptom paresthesia.\\n\\n AVAILABLE SYMPTOMS {{ $json.symptoms[0] }} \\n\\nThe required output format is:\\n{\\\"symptoms\\\":[{\\\"symptom_id\\\":10,\\\"symptom\\\":\\\"palpitations\\\",\\\"evidence\\\":\\\"original Vietnamese statement\\\",\\\"certainty\\\":\\\"certain\\\"}]}\\n\\nIf no symptoms are found, return exactly:\\n{\\\"symptoms\\\":[]}\" }, { \"role\": \"user\", \"content\": \"PATIENT TRANSCRIPT:\\n{{ $json.text }}\" } ], \"temperature\": 0.1, \"max_tokens\": 2000 }",
+        "bodyParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "jsonBody": "={\n  \"model\": \"gemma-4\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a medical symptom extraction assistant. Return exactly ONE valid JSON object and NOTHING ELSE. No markdown. No code fences. No explanations. No text before or after the JSON.\\n\\nThe patient transcript may be in Vietnamese. The available symptom list is in English.\\n\\nUnderstand the Vietnamese transcript and match symptoms ONLY to exact symptom names from the provided list.\\n\\nRules:\\n1. Understand Vietnamese medical descriptions and everyday Vietnamese expressions.\\n2. Translate the meaning internally into English before matching.\\n3. ONLY select symptoms that exist in the provided symptom list.\\n4. Use the symptom name EXACTLY as it appears in the symptom list.\\n5. NEVER invent a symptom.\\n6. Do not diagnose the patient.\\n7. Do not infer a disease.\\n8. Only extract symptoms actually mentioned or clearly described.\\n9. If the patient explicitly denies a symptom, do NOT include it.\\n10. If a statement cannot be reliably matched to the symptom list, leave it out.\\n11. Keep the original Vietnamese evidence in the evidence field.\\n12. certainty must be exactly either certain or not certain.\\n13. Return exactly one JSON object.\\n\\nIMPORTANT ID RULE:\\n14. Every selected symptom MUST contain symptom_id.\\n15. The symptom_id MUST be copied EXACTLY from the id field of the SAME symptom object in AVAILABLE SYMPTOMS.\\n16. The symptom name and symptom_id MUST always come from the SAME object.\\n17. NEVER invent, guess, calculate, modify, or approximate a symptom_id.\\n18. NEVER combine the name from one symptom object with the ID from another symptom object.\\n19. Before returning the answer, verify that every symptom_id matches the exact symptom name.\\n\\nIMPORTANT SYMPTOM MATCHING RULE:\\n20. NEVER create a descriptive symptom name such as numbness in arm or numbness.\\n21. If the patient describes numbness, tingling, loss of sensation, or a similar sensation, select the closest matching symptom ONLY from AVAILABLE SYMPTOMS.\\n22. The output symptom name MUST be exactly one of the provided name values.\\n23. Do NOT translate, paraphrase, shorten, expand, or change the symptom name.\\n24. If multiple available symptoms could match, choose the most specific valid symptom from AVAILABLE SYMPTOMS.\\n25. If no valid symptom exists in AVAILABLE SYMPTOMS, leave the symptom out.\\n\\nExample:\\nIf AVAILABLE SYMPTOMS contains an object with id 6 and name dizziness, the output MUST use symptom_id 6 and symptom dizziness.\\nIf AVAILABLE SYMPTOMS contains an object with id 167 and name paresthesia, the output MUST use symptom_id 167 and symptom paresthesia.\\n\\n AVAILABLE SYMPTOMS {{ $json.symptoms }} \\n\\nThe required output format is:\\n{\\\"symptoms\\\":[{\\\"symptom_id\\\":10,\\\"symptom\\\":\\\"palpitations\\\",\\\"evidence\\\":\\\"original Vietnamese statement\\\",\\\"certainty\\\":\\\"certain\\\"}]}\\n\\nIf no symptoms are found, return exactly:\\n{\\\"symptoms\\\":[]}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"PATIENT TRANSCRIPT:\\n {{ $json.text }}\"\n    }\n  ],\n  \"temperature\": 0.1,\n  \"max_tokens\": 2000\n}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
@@ -269,6 +271,7 @@
       "parameters": {
         "mode": "combine",
         "combineBy": "combineByPosition",
+        "numberInputs": 3,
         "options": {}
       },
       "type": "n8n-nodes-base.merge",
@@ -282,7 +285,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const content = $json.choices?.[0]?.message?.content;\n\nif (!content) {\n  return [{\n    json: {\n      error: \"EmergencyCheck returned no content\"\n    }\n  }];\n}\n\ntry {\n  // Entfernt ```json ... ``` falls Gemma Markdown zurückgibt\n  const cleaned = content\n    .replace(/^```json\\s*/i, \"\")\n    .replace(/^```\\s*/i, \"\")\n    .replace(/\\s*```$/i, \"\")\n    .trim();\n\n  const result = JSON.parse(cleaned);\n\n  return [{\n    json: result\n  }];\n\n} catch (error) {\n  return [{\n    json: {\n      error: \"EmergencyCheck returned invalid JSON\",\n      raw_content: content\n    }\n  }];\n}"
+        "jsCode": "const content = $json.choices?.[0]?.message?.content;\n\nif (!content) {\n  return [\n    {\n      json: {\n        error: \"EmergencyCheck returned no content\"\n      }\n    }\n  ];\n}\n\ntry {\n  let cleaned = String(content).trim();\n\n  // Entfernt ```json ... ```\n  cleaned = cleaned\n    .replace(/^```json\\s*/i, \"\")\n    .replace(/^```\\s*/i, \"\")\n    .replace(/\\s*```$/i, \"\")\n    .trim();\n\n  const result = JSON.parse(cleaned);\n\n  return [\n    {\n      json: result\n    }\n  ];\n\n} catch (error) {\n  return [\n    {\n      json: {\n        error: \"EmergencyCheck returned invalid JSON\",\n        raw_content: content,\n        parse_error: error instanceof Error\n          ? error.message\n          : String(error)\n      }\n    }\n  ];\n}"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -299,25 +302,12 @@
       },
       "type": "n8n-nodes-base.stickyNote",
       "position": [
-        1216,
-        0
+        1248,
+        80
       ],
       "typeVersion": 1,
       "id": "1301ad11-d242-4fe6-abc3-5e78fbc10b51",
       "name": "Sticky Note2"
-    },
-    {
-      "parameters": {
-        "content": "= Emergency == 1 --> Human Review\n!= Emergency = 0 --> Clinical Review\n "
-      },
-      "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        1712,
-        112
-      ],
-      "typeVersion": 1,
-      "id": "0a2cd043-b4cc-4232-9b4a-a45e0c5baf7b",
-      "name": "Sticky Note3"
     },
     {
       "parameters": {
@@ -331,39 +321,6 @@
       "typeVersion": 1,
       "id": "3145c7fe-1c12-4d5d-9d1b-ab83335b559b",
       "name": "Sticky Note4"
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true,
-            "leftValue": "",
-            "typeValidation": "strict",
-            "version": 3
-          },
-          "conditions": [
-            {
-              "id": "179882ca-1d50-46d0-99b2-ba5a4bebdead",
-              "leftValue": "={{ $json.emergency }}",
-              "rightValue": false,
-              "operator": {
-                "type": "boolean",
-                "operation": "equals"
-              }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.3,
-      "position": [
-        1936,
-        304
-      ],
-      "id": "6e8693a3-d350-4db3-96e9-05dc062d2245",
-      "name": "If1"
     },
     {
       "parameters": {
@@ -394,14 +351,14 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{\n  {\n    model: \"gemma-4\",\n    messages: [\n      {\n        role: \"system\",\n        content:\n          \"You are a medical clinical-summary assistant.\\n\\n\" +\n          \"Create a structured clinical summary from the patient's transcript.\\n\\n\" +\n          \"IMPORTANT RULES:\\n\" +\n          \"1. Use ONLY information explicitly stated in the transcript.\\n\" +\n          \"2. Do not invent information.\\n\" +\n          \"3. Do not diagnose any disease.\\n\" +\n          \"4. Do not infer medical history that is not stated.\\n\" +\n          \"5. The output language MUST be English.\\n\" +\n          \"6. Keep the patient's original meaning.\\n\" +\n          \"7. Return exactly ONE valid JSON object and NOTHING ELSE.\\n\" +\n          \"8. Do not use markdown or code fences.\\n\\n\" +\n          \"Create ONLY these fields:\\n\" +\n          \"chief_complaint, duration, severity, relevant_history, clinical_summary.\\n\\n\" +\n          \"For information that is not explicitly available, use null.\\n\\n\" +\n          \"Return exactly this structure:\\n\" +\n          \"{\\\"chief_complaint\\\":null,\\\"duration\\\":null,\\\"severity\\\":null,\\\"relevant_history\\\":null,\\\"clinical_summary\\\":null}\"\n      },\n      {\n        role: \"user\",\n        content:\n          \"PATIENT TRANSCRIPT:\\n\" +\n          $(\"Speech-to-Text\").first().json.text\n      }\n    ],\n    temperature: 0.1,\n    max_tokens: 1000\n  }\n}}",
+        "jsonBody": "={{\n  {\n    model: \"gemma-4\",\n    messages: [\n      {\n        role: \"system\",\n        content:\n          \"You are a medical clinical-summary assistant.\\n\\n\" +\n          \"Create a structured clinical summary from the patient's transcript.\\n\\n\" +\n          \"IMPORTANT RULES:\\n\" +\n          \"1. Use ONLY information explicitly stated in the transcript.\\n\" +\n          \"2. Do not invent information.\\n\" +\n          \"3. Do not diagnose any disease.\\n\" +\n          \"4. Do not infer medical history that is not stated.\\n\" +\n          \"5. The output language MUST be English.\\n\" +\n          \"6. Keep the patient's original meaning.\\n\" +\n          \"7. Return exactly ONE valid JSON object and NOTHING ELSE.\\n\" +\n          \"8. Do not use markdown or code fences.\\n\\n\" +\n          \"Create ONLY these fields:\\n\" +\n          \"chief_complaint, duration, severity, relevant_history, clinical_summary.\\n\\n\" +\n          \"For information that is not explicitly available, use null.\\n\\n\" +\n          \"Return exactly this structure:\\n\" +\n          \"{\\\"chief_complaint\\\":null,\\\"duration\\\":null,\\\"severity\\\":null,\\\"relevant_history\\\":null,\\\"clinical_summary\\\":null}\"\n      },\n      {\n        role: \"user\",\n        content:\n          \"PATIENT TRANSCRIPT:\\n\" +\n          $json.text\n      }\n    ],\n    temperature: 0.1,\n    max_tokens: 1000\n  }\n}}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
       "position": [
-        2208,
-        208
+        2096,
+        -224
       ],
       "id": "71053ee1-7942-4773-b667-fc7294278383",
       "name": "Clinical-Summary",
@@ -436,8 +393,8 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.5,
       "position": [
-        -528,
-        640
+        -672,
+        656
       ],
       "id": "c35f40c4-bd85-4188-99e8-20a387bd922c",
       "name": "Speech-to-Text"
@@ -524,7 +481,8 @@
           "mappingMode": "defineBelow",
           "value": {
             "text": "={{ $json.text }} ",
-            "patient_id": "={{ $json.patient_id }} "
+            "patient_id": "={{ $json.patient_id }} ",
+            "language": "={{ $json.language }} "
           },
           "matchingColumns": [
             "text"
@@ -543,6 +501,16 @@
             {
               "id": "patient_id",
               "displayName": "patient_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "canBeUsedToMatch": true,
+              "type": "string",
+              "removed": false
+            },
+            {
+              "id": "language",
+              "displayName": "language",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -945,28 +913,6 @@
     },
     {
       "parameters": {
-        "operation": "executeQuery",
-        "query": "SELECT\n    id,\n    email,\n    role,\n    status,\n    patient_id\nFROM public.ptalk_users\nWHERE email = 'admin@ptalk.local';",
-        "options": {}
-      },
-      "type": "n8n-nodes-base.postgres",
-      "typeVersion": 2.7,
-      "position": [
-        192,
-        112
-      ],
-      "id": "42a77790-475e-4218-b56b-4a5554e9a3d5",
-      "name": "Delete everything from DB1",
-      "alwaysOutputData": false,
-      "credentials": {
-        "postgres": {
-          "id": "TKSeFDOOaXMczEDD",
-          "name": "Postgres account"
-        }
-      }
-    },
-    {
-      "parameters": {
         "httpMethod": "POST",
         "path": "ptalk-consultation",
         "responseMode": "responseNode",
@@ -977,8 +923,8 @@
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
       "position": [
-        -976,
-        464
+        -1136,
+        640
       ],
       "id": "a6e71480-2d16-4b92-b58c-c9e8c06c4562",
       "name": "Website-Trigger",
@@ -1014,6 +960,12 @@
               "name": "text",
               "value": "={{ $json.text }}",
               "type": "string"
+            },
+            {
+              "id": "a23adaa4-8647-4097-81b8-cdd0d184f159",
+              "name": "language",
+              "value": "={{ $('Website-Trigger').item.json.body.language }}",
+              "type": "string"
             }
           ]
         },
@@ -1026,7 +978,314 @@
         752
       ],
       "id": "5e0fb1f0-156c-452b-92d7-5d66f8e3e39e",
-      "name": "Edit Fields"
+      "name": "Edit Fields",
+      "executeOnce": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "Transcribe_URL_EN",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Ask-Token",
+              "value": "X-ASK-EN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "audio"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        -672,
+        464
+      ],
+      "id": "8a9a727b-ced2-4131-a56f-b7db9eb55ea0",
+      "name": "Speech-to-Text-EN"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.language }}",
+                    "rightValue": "vi",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "ea2d69ba-e739-4a40-9a6d-f5d2902839bd"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "a7196365-441f-45c6-b56e-7a1848c27893",
+                    "leftValue": "={{ $json.body.language }}",
+                    "rightValue": "en",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -960,
+        640
+      ],
+      "id": "959086a5-b673-4d16-92fb-d626beee33d5",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "API_URL",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer_GEMMA"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "=json",
+        "specifyBody": "json",
+        "bodyParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "jsonBody": "={\n  \"model\": \"gemma-4\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a medical symptom extraction assistant. Return exactly ONE valid JSON object and NOTHING ELSE. No markdown. No code fences. No explanations. No text before or after the JSON.\\n\\nThe patient transcript is in English. The available symptom list is in English.\\n\\nUnderstand the English transcript and match symptoms ONLY to exact symptom names from the provided list.\\n\\nRules:\\n1. Understand English medical descriptions and everyday English expressions.\\n2. ONLY select symptoms that exist in the provided symptom list.\\n3. Use the symptom name EXACTLY as it appears in the symptom list.\\n4. NEVER invent a symptom.\\n5. Do not diagnose the patient.\\n6. Do not infer a disease.\\n7. Only extract symptoms actually mentioned or clearly described.\\n8. If the patient explicitly denies a symptom, do NOT include it.\\n9. If a statement cannot be reliably matched to the symptom list, leave it out.\\n10. Keep the original English evidence in the evidence field.\\n11. certainty must be exactly either certain or not certain.\\n12. Return exactly one JSON object.\\n\\nIMPORTANT ID RULE:\\n13. Every selected symptom MUST contain symptom_id.\\n14. The symptom_id MUST be copied EXACTLY from the id field of the SAME symptom object in AVAILABLE SYMPTOMS.\\n15. The symptom name and symptom_id MUST always come from the SAME object.\\n16. NEVER invent, guess, calculate, modify, or approximate a symptom_id.\\n17. NEVER combine the name from one symptom object with the ID from another symptom object.\\n18. Before returning the answer, verify that every symptom_id matches the exact symptom name.\\n\\nIMPORTANT SYMPTOM MATCHING RULE:\\n19. NEVER create a descriptive symptom name such as numbness in arm or numbness.\\n20. If the patient describes numbness, tingling, loss of sensation, or a similar sensation, select the closest matching symptom ONLY from AVAILABLE SYMPTOMS.\\n21. The output symptom name MUST be exactly one of the provided name values.\\n22. Do NOT translate, paraphrase, shorten, expand, or change the symptom name.\\n23. If multiple available symptoms could match, choose the most specific valid symptom from AVAILABLE SYMPTOMS.\\n24. If no valid symptom exists in AVAILABLE SYMPTOMS, leave the symptom out.\\n\\nExample:\\nIf AVAILABLE SYMPTOMS contains an object with id 6 and name dizziness, the output MUST use symptom_id 6 and symptom dizziness.\\nIf AVAILABLE SYMPTOMS contains an object with id 167 and name paresthesia, the output MUST use symptom_id 167 and symptom paresthesia.\\n\\nAVAILABLE SYMPTOMS {{ $json.symptoms[0] }} \\n\\nThe required output format is:\\n{\\\"symptoms\\\":[{\\\"symptom_id\\\":10,\\\"symptom\\\":\\\"palpitations\\\",\\\"evidence\\\":\\\"original English statement\\\",\\\"certainty\\\":\\\"certain\\\"}]}\\n\\nIf no symptoms are found, return exactly:\\n{\\\"symptoms\\\":[]}\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"PATIENT TRANSCRIPT:\\n {{ $json.text }} , AVAILABLE SYMPTOMS {{ $json.symptoms[0] }} \"\n    }\n  ],\n  \"temperature\": 0.1,\n  \"max_tokens\": 2000\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        144,
+        336
+      ],
+      "id": "3c0f480c-6cd4-408c-94d1-a3f58a7a5d99",
+      "name": "Gemini",
+      "executeOnce": false
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -80,
+        496
+      ],
+      "id": "400b62f6-9067-4c3b-bb1b-3304b360f1c7",
+      "name": "Merge4"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT json_agg(\n    json_build_object(\n        'id', id,\n        'name', name\n    )\n    ORDER BY id\n) AS symptoms\nFROM symptoms;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.7,
+      "position": [
+        -336,
+        496
+      ],
+      "id": "8ee35a0a-ab6b-4585-877f-8bd14e78693e",
+      "name": "Symptom Query1",
+      "alwaysOutputData": false,
+      "credentials": {
+        "postgres": {
+          "id": "TKSeFDOOaXMczEDD",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a424ca7a-4cd5-456d-bdc5-a7ed5daea322",
+              "leftValue": "={{ $json.choices[0].message.content }}",
+              "rightValue": "=Please provide",
+              "operator": {
+                "type": "string",
+                "operation": "notStartsWith"
+              }
+            },
+            {
+              "id": "190b6770-e99c-4230-8b80-f10b9dd37be4",
+              "leftValue": "={{ $json.choices[0].message.content }}",
+              "rightValue": "[]",
+              "operator": {
+                "type": "string",
+                "operation": "notContains"
+              }
+            },
+            {
+              "id": "48b6bb59-72bc-45f6-90af-98fd7f4514a8",
+              "leftValue": "={{ $json.choices[0].message.content }}",
+              "rightValue": "I cannot",
+              "operator": {
+                "type": "string",
+                "operation": "notStartsWith"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {
+          "ignoreCase": false
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        304,
+        496
+      ],
+      "id": "6025d9f4-6a6f-4cac-87be-7463578d6fd6",
+      "name": "If2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const content = $json.choices[0].message.content;\n\nconst result = JSON.parse(content);\n\nreturn [\n  {\n    json: result\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        512,
+        496
+      ],
+      "id": "ace67c67-4ce6-46d1-821f-d1d5a40dd24e",
+      "name": "Cleanup1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const dbSymptoms = $('Symptom Query1').first().json.symptoms;\n\nconst dbMap = new Map(\n  dbSymptoms.map(s => [s.name.toLowerCase().trim(), s])\n);\n\nconst symptoms = $json.symptoms ?? [];\n\nconst corrected = symptoms\n  .map(s => {\n    const match = dbMap.get(s.symptom.toLowerCase().trim());\n\n    if (!match) {\n      return null;\n    }\n\n    return {\n      symptom_id: match.id,\n      symptom: match.name,\n      evidence: s.evidence,\n      certainty: s.certainty\n    };\n  })\n  .filter(Boolean);\n\nreturn [{\n  json: {\n    symptoms: corrected\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        816,
+        528
+      ],
+      "id": "16d1c714-c4f8-4249-a4b0-6e865724b2ad",
+      "name": "Check DB-ID1"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1840,
+        -128
+      ],
+      "id": "459c4abe-8d04-4000-9eab-664ac99a9dea",
+      "name": "Merge5"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"ok\": false,\n  \"error\": \"No symptoms were detected.\",\n  \"code\": \"NO_SYMPTOMS\",\n  \"message\": \"No symptoms were detected. Please describe your symptoms again and try again.\"\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1024,
+        208
+      ],
+      "id": "23f82c3c-52c0-4549-922a-ab993e9d2a5c",
+      "name": "Respond to Webhook5"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e0ca7db3-1f1c-4e43-ad9c-94698d11ad27",
+              "leftValue": "={{ $json.symptoms.length }}",
+              "rightValue": 1,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        784,
+        240
+      ],
+      "id": "f9c38374-459a-42ec-b493-5db1b9f10133",
+      "name": "If symptoms are empty"
     }
   ],
   "pinData": {},
@@ -1047,7 +1306,7 @@
       "main": [
         [
           {
-            "node": "Gemini1",
+            "node": "Gemini",
             "type": "main",
             "index": 0
           }
@@ -1120,6 +1379,11 @@
             "node": "Check DB-ID",
             "type": "main",
             "index": 0
+          },
+          {
+            "node": "If symptoms are empty",
+            "type": "main",
+            "index": 0
           }
         ]
       ]
@@ -1139,7 +1403,7 @@
       "main": [
         [
           {
-            "node": "If",
+            "node": "If2",
             "type": "main",
             "index": 0
           }
@@ -1172,26 +1436,14 @@
       "main": [
         [
           {
-            "node": "If1",
-            "type": "main",
-            "index": 0
-          },
-          {
             "node": "Clinical Summary + Emergency Check",
             "type": "main",
             "index": 1
-          }
-        ]
-      ]
-    },
-    "If1": {
-      "main": [
-        [],
-        [
+          },
           {
-            "node": "Clinical-Summary",
+            "node": "Merge5",
             "type": "main",
-            "index": 0
+            "index": 1
           }
         ]
       ]
@@ -1200,17 +1452,27 @@
       "main": [
         [
           {
-            "node": "Merge",
-            "type": "main",
-            "index": 1
-          },
-          {
-            "node": "Symptom Query",
+            "node": "Edit Fields",
             "type": "main",
             "index": 0
           },
           {
-            "node": "Edit Fields",
+            "node": "Merge4",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "Symptom Query1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 2
+          },
+          {
+            "node": "Merge5",
             "type": "main",
             "index": 0
           }
@@ -1467,7 +1729,7 @@
       "main": [
         [
           {
-            "node": "Speech-to-Text",
+            "node": "Switch",
             "type": "main",
             "index": 0
           }
@@ -1495,6 +1757,163 @@
           }
         ]
       ]
+    },
+    "Speech-to-Text-EN": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Symptom Query",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 2
+          },
+          {
+            "node": "Merge5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Speech-to-Text",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Speech-to-Text-EN",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gemini": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge4": {
+      "main": [
+        [
+          {
+            "node": "Gemini1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Symptom Query1": {
+      "main": [
+        [
+          {
+            "node": "Merge4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If2": {
+      "main": [
+        [
+          {
+            "node": "Cleanup1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cleanup1": {
+      "main": [
+        [
+          {
+            "node": "Check DB-ID1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "If symptoms are empty",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check DB-ID1": {
+      "main": [
+        [
+          {
+            "node": "Disease-Matching",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge3",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Clinical Summary + Symptoms",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge5": {
+      "main": [
+        [
+          {
+            "node": "Clinical-Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If symptoms are empty": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": true,
@@ -1502,7 +1921,7 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "f78ca589-91c5-4ff6-960a-adebd6356847",
+  "versionId": "70372a8b-14db-48d9-9511-989b355f6b9d",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "d73ec44ec989ac1332d6c05f2ece59e3ed4f920ab644be4db3a0b842cbd338d6"
