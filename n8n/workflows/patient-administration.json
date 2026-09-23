@@ -4,9 +4,9 @@
     {
       "parameters": {
         "operation": "executeQuery",
-        "query": "WITH consultation AS (\n    INSERT INTO public.patient_consultations (\n        patient_id,\n        language,\n        transcript\n    )\n    VALUES (\n        $1,\n        'vi',\n        $2\n    )\n    RETURNING\n        consultation_id,\n        patient_id,\n        language,\n        transcript,\n        consultation_date\n)\nSELECT\n    c.consultation_id,\n    c.patient_id,\n    c.language,\n    c.transcript,\n    c.consultation_date,\n    p.first_name,\n    p.last_name,\n    p.date_of_birth\nFROM consultation c\nJOIN public.patient_identity p\n    ON p.patient_id = c.patient_id;",
+        "query": "WITH consultation AS (\n    INSERT INTO public.patient_consultations (\n        patient_id,\n        language,\n        transcript\n    )\n    VALUES (\n        $1,\n        $3,\n        $2\n    )\n    RETURNING\n        consultation_id,\n        patient_id,\n        language,\n        transcript,\n        consultation_date\n)\nSELECT\n    c.consultation_id,\n    c.patient_id,\n    c.language,\n    c.transcript,\n    c.consultation_date,\n    p.first_name,\n    p.last_name,\n    p.date_of_birth\nFROM consultation c\nJOIN public.patient_identity p\n    ON p.patient_id = c.patient_id;",
         "options": {
-          "queryReplacement": "=$1 → {{ $json.patient_id }}\n$2 → {{ $json.text }}"
+          "queryReplacement": "=$1 → {{ $json.patient_id }}\n$2 → {{ $json.text }}\n$3 → {{ $json.language }}"
         }
       },
       "type": "n8n-nodes-base.postgres",
@@ -17,15 +17,15 @@
       "alwaysOutputData": false,
       "credentials": {
         "postgres": {
-          "id": "TKSeFDOOaXMczEDD",
-          "name": "Postgres account"
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "POSTGRES_CREDENTIAL_NAME"
         }
       }
     },
     {
       "parameters": {
         "inputSource": "jsonExample",
-        "jsonExample": "{\n  \"text\": \"a string\",\n  \"patient_id\" : \"a string\"\n}"
+        "jsonExample": "{\n  \"text\": \"a string\",\n  \"patient_id\" : \"a string\",\n  \"language\" : \"a string\"\n  \n}"
       },
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.2,
@@ -116,8 +116,8 @@
       "name": "Load Patient for Obsidian",
       "credentials": {
         "postgres": {
-          "id": "TKSeFDOOaXMczEDD",
-          "name": "Postgres account"
+          "id": "POSTGRES_CREDENTIAL_ID",
+          "name": "POSTGRES_CREDENTIAL_NAME"
         }
       }
     }
@@ -128,12 +128,10 @@
       "main": [[{"node": "Patient/Consultation-Node", "type": "main", "index": 0}]]
     },
     "Patient/Consultation-Node": {
-      "main": [
-        [
-          {"node": "Create Patient Folder", "type": "main", "index": 0},
-          {"node": "Load Patient for Obsidian", "type": "main", "index": 0}
-        ]
-      ]
+      "main": [[
+        {"node": "Create Patient Folder", "type": "main", "index": 0},
+        {"node": "Load Patient for Obsidian", "type": "main", "index": 0}
+      ]]
     },
     "Create Patient Folder": {
       "main": [[{"node": "Wait for Folder", "type": "main", "index": 0}]]
@@ -159,10 +157,10 @@
     "executionOrder": "v1",
     "binaryMode": "separate"
   },
-  "versionId": "a3741d0f-fd3a-4bdb-814b-20d80402be4f",
+  "versionId": "a283c782-a9cc-407f-9a21-2aa34fe88ca7",
   "meta": {
     "templateCredsSetupCompleted": true,
-    "instanceId": "d73ec44ec989ac1332d6c05f2ece59e3ed4f920ab644be4db3a0b842cbd338d6"
+    "instanceId": "N8N_INSTANCE_ID"
   },
   "nodeGroups": [],
   "id": "GBlFfITvQOmxiP4r",
