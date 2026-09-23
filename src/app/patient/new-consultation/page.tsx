@@ -49,6 +49,9 @@ export default function NewConsultationPage() {
   const fileInputRef =
     useRef<HTMLInputElement | null>(null);
 
+  const [language, setLanguage] =
+    useState<"vi" | "en">("vi");
+
   const [isRecording, setIsRecording] =
     useState(false);
 
@@ -444,6 +447,11 @@ export default function NewConsultationPage() {
       );
 
       console.log(
+        "PTALK: language:",
+        language
+      );
+
+      console.log(
         "PTALK: file:",
         fileToSend.name,
         fileToSend.type,
@@ -455,6 +463,17 @@ export default function NewConsultationPage() {
       formData.append(
         "audio",
         fileToSend
+      );
+
+      /*
+       * Send selected consultation language.
+       *
+       * vi = Vietnamese
+       * en = English
+       */
+      formData.append(
+        "language",
+        language
       );
 
       const response = await fetch(
@@ -481,6 +500,7 @@ export default function NewConsultationPage() {
       let data: {
         error?: string;
         message?: string;
+        code?: string;
         consultation_id?: string;
       } = {};
 
@@ -500,6 +520,12 @@ export default function NewConsultationPage() {
       }
 
       if (!response.ok) {
+        if (data.code === "NO_SYMPTOMS") {
+          throw new Error(
+            "No symptoms were detected. Please describe your symptoms again and try again."
+          );
+        }
+
         throw new Error(
           data.error ||
             data.message ||
@@ -536,8 +562,11 @@ export default function NewConsultationPage() {
 
   return (
     <main className="min-h-screen bg-slate-50 pb-24">
+
+      {/* Header */}
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-5xl px-5 py-4">
+
           <div className="text-lg font-bold text-slate-900">
             PTalk
           </div>
@@ -545,10 +574,13 @@ export default function NewConsultationPage() {
           <div className="text-xs text-slate-400">
             New consultation
           </div>
+
         </div>
       </header>
 
       <div className="mx-auto max-w-3xl px-5 py-10">
+
+        {/* Back */}
         <a
           href="/patient"
           className="text-sm text-slate-500 hover:text-slate-900"
@@ -556,7 +588,9 @@ export default function NewConsultationPage() {
           ← Back
         </a>
 
+        {/* Title */}
         <section className="mt-6">
+
           <p className="text-sm text-slate-500">
             Clinical consultation
           </p>
@@ -570,10 +604,102 @@ export default function NewConsultationPage() {
             recording or upload an existing
             audio file.
           </p>
+
+        </section>
+
+        {/* LANGUAGE */}
+        <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
+          <p className="text-sm text-slate-500">
+            Consultation language
+          </p>
+
+          <h2 className="mt-1 text-xl font-semibold text-slate-900">
+            Select language
+          </h2>
+
+          <p className="mt-2 text-sm leading-6 text-slate-500">
+            Choose the language that will be spoken
+            in the consultation.
+          </p>
+
+          <div className="mt-5 rounded-xl bg-slate-100 p-1">
+
+            <div className="grid grid-cols-2 gap-1">
+
+              <button
+                type="button"
+                onClick={() => {
+                  setLanguage("vi");
+                  setSubmitError(null);
+                  setSubmitted(false);
+                }}
+                disabled={
+                  isRecording ||
+                  isSubmitting
+                }
+                className={`rounded-lg px-4 py-3 text-sm font-medium transition ${
+                  language === "vi"
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-500 hover:text-slate-900"
+                } ${
+                  isRecording ||
+                  isSubmitting
+                    ? "cursor-not-allowed opacity-60"
+                    : ""
+                }`}
+              >
+                Vietnamese
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setLanguage("en");
+                  setSubmitError(null);
+                  setSubmitted(false);
+                }}
+                disabled={
+                  isRecording ||
+                  isSubmitting
+                }
+                className={`rounded-lg px-4 py-3 text-sm font-medium transition ${
+                  language === "en"
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-500 hover:text-slate-900"
+                } ${
+                  isRecording ||
+                  isSubmitting
+                    ? "cursor-not-allowed opacity-60"
+                    : ""
+                }`}
+              >
+                English
+              </button>
+
+            </div>
+
+          </div>
+
+          <div className="mt-4 flex items-center justify-between">
+
+            <span className="text-xs text-slate-500">
+              Selected language
+            </span>
+
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-700">
+              {language === "vi"
+                ? "vi"
+                : "en"}
+            </span>
+
+          </div>
+
         </section>
 
         {/* RECORDING */}
         <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
           <p className="text-sm text-slate-500">
             Option 1
           </p>
@@ -583,6 +709,7 @@ export default function NewConsultationPage() {
           </h2>
 
           <div className="mt-6 flex justify-center">
+
             <div
               className={`flex h-36 w-36 items-center justify-center rounded-full border-4 ${
                 isRecording
@@ -590,12 +717,15 @@ export default function NewConsultationPage() {
                   : "border-slate-200 bg-slate-50"
               }`}
             >
+
               <span className="font-mono text-2xl text-slate-900">
                 {formatTime(
                   recordingTime
                 )}
               </span>
+
             </div>
+
           </div>
 
           {isRecording && (
@@ -605,7 +735,9 @@ export default function NewConsultationPage() {
           )}
 
           <div className="mt-6 flex justify-center">
+
             {!isRecording ? (
+
               <button
                 type="button"
                 onClick={
@@ -615,7 +747,9 @@ export default function NewConsultationPage() {
               >
                 Start recording
               </button>
+
             ) : (
+
               <button
                 type="button"
                 onClick={
@@ -625,7 +759,9 @@ export default function NewConsultationPage() {
               >
                 Stop recording
               </button>
+
             )}
+
           </div>
 
           {error && (
@@ -633,11 +769,13 @@ export default function NewConsultationPage() {
               {error}
             </div>
           )}
+
         </section>
 
         {/* RECORDED AUDIO */}
         {audioBlob && audioUrl && (
           <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
             <p className="text-sm text-slate-500">
               Recording
             </p>
@@ -665,6 +803,7 @@ export default function NewConsultationPage() {
             />
 
             <div className="mt-5 flex gap-3">
+
               <button
                 type="button"
                 onClick={
@@ -684,12 +823,15 @@ export default function NewConsultationPage() {
               >
                 Delete
               </button>
+
             </div>
+
           </section>
         )}
 
         {/* UPLOAD */}
         <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
           <p className="text-sm text-slate-500">
             Option 2
           </p>
@@ -704,6 +846,7 @@ export default function NewConsultationPage() {
           </p>
 
           <label className="mt-5 block cursor-pointer rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-8 text-center transition hover:border-slate-400 hover:bg-slate-100">
+
             <input
               ref={fileInputRef}
               type="file"
@@ -726,6 +869,7 @@ export default function NewConsultationPage() {
             <div className="mt-1 text-xs text-slate-400">
               Maximum file size: 50 MB
             </div>
+
           </label>
 
           {uploadError && (
@@ -736,7 +880,9 @@ export default function NewConsultationPage() {
 
           {uploadedFile &&
             uploadedAudioUrl && (
+
               <div className="mt-5 rounded-xl border border-slate-200 bg-white p-4">
+
                 <p className="text-sm font-medium text-slate-900">
                   Selected file
                 </p>
@@ -774,13 +920,17 @@ export default function NewConsultationPage() {
                 >
                   Remove file
                 </button>
+
               </div>
+
             )}
+
         </section>
 
         {/* SUBMIT */}
         {hasAudio && (
           <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+
             <h2 className="text-xl font-semibold text-slate-900">
               Submit consultation
             </h2>
@@ -789,6 +939,21 @@ export default function NewConsultationPage() {
               Your audio will be sent to PTalk
               for processing.
             </p>
+
+            {/* Selected language summary */}
+            <div className="mt-4 flex items-center justify-between rounded-xl bg-slate-50 px-4 py-3">
+
+              <span className="text-sm text-slate-500">
+                Language
+              </span>
+
+              <span className="text-sm font-medium text-slate-900">
+                {language === "vi"
+                  ? "Vietnamese (vi)"
+                  : "English (en)"}
+              </span>
+
+            </div>
 
             {submitError && (
               <div className="mt-4 whitespace-pre-wrap break-words rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
@@ -815,12 +980,15 @@ export default function NewConsultationPage() {
                 ? "Submitting..."
                 : "Submit consultation"}
             </button>
+
           </section>
         )}
+
       </div>
 
       {/* BOTTOM NAVIGATION */}
-      <PatientBottomNav/>
+      <PatientBottomNav />
+
     </main>
   );
 }

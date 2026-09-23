@@ -38,6 +38,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           error: data.error || "Login failed",
+          code: data.code,
         },
         {
           status: response.status,
@@ -99,17 +100,15 @@ export async function POST(request: Request) {
       user: data.user,
     });
 
-    nextResponse.cookies.set(
-      "ptalk_session",
-      sessionToken,
-      {
-        httpOnly: true,
-        secure: false,
-        sameSite: "lax",
-        path: "/",
-        maxAge: 60 * 60 * 8,
-      }
-    );
+    nextResponse.cookies.set({
+      name: "ptalk_session",
+      value: sessionToken,
+      httpOnly: true,
+      secure: false,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 8,
+    });
 
     return nextResponse;
   } catch (error) {

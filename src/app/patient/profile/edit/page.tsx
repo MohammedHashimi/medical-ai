@@ -279,15 +279,32 @@ export default function EditProfilePage() {
         ====================================================== */}
 
         <header className="mb-6">
+
           <div className="flex items-center justify-between gap-3">
 
+            {/* Back to Profile */}
             <Link
               href="/patient/profile"
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
+              className="group inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
             >
-              ← Profile
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                className="h-4 w-4 transition-transform group-hover:-translate-x-0.5"
+                stroke="currentColor"
+                strokeWidth="1.8"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="m15 18-6-6 6-6"
+                />
+              </svg>
+
+              Profile
             </Link>
 
+            {/* Dashboard */}
             <Link
               href="/patient"
               className="rounded-xl bg-slate-800 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700"
@@ -297,13 +314,24 @@ export default function EditProfilePage() {
 
           </div>
 
-          <h1 className="mt-6 text-2xl font-semibold text-slate-900">
-            Edit Profile
-          </h1>
+          {/* PTalk → Homepage */}
+          <Link
+            href="/"
+            className="group mt-6 inline-flex flex-col"
+          >
+            <h1 className="text-2xl font-semibold text-slate-900 transition group-hover:text-blue-600">
+              PTalk
+            </h1>
+
+            <p className="mt-1 text-sm text-slate-500">
+              Edit Profile
+            </p>
+          </Link>
 
           <p className="mt-1 text-sm text-slate-500">
             Update your personal information.
           </p>
+
         </header>
 
         {/* ======================================================
@@ -334,6 +362,7 @@ export default function EditProfilePage() {
           onSubmit={handleSubmit}
           className="rounded-2xl bg-white p-6 shadow-sm"
         >
+
           <div className="space-y-5">
 
             {/* First name */}
@@ -420,6 +449,7 @@ export default function EditProfilePage() {
             </button>
 
           </div>
+
         </form>
 
         {/* Patient ID */}
@@ -430,13 +460,15 @@ export default function EditProfilePage() {
             {patient.patient_id}
           </p>
         )}
+
       </div>
 
       {/* ========================================================
           BOTTOM NAVIGATION
       ======================================================== */}
-        <PatientBottomNav/>
-      
+
+      <PatientBottomNav />
+
     </main>
   );
 }

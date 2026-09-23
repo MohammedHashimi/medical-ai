@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import Link from "next/link";
 
 type Symptom = {
   symptom_id: number;
@@ -58,7 +59,9 @@ export default async function TeamConsultationPage({
   }
 
   const response = await fetch(
-    `http://localhost:4000/api/consultations?consultation_id=${encodeURIComponent(id)}`,
+    `http://localhost:4000/api/consultations?consultation_id=${encodeURIComponent(
+      id
+    )}`,
     {
       headers: {
         Cookie: `ptalk_session=${session.value}`,
@@ -109,27 +112,48 @@ export default async function TeamConsultationPage({
 
   return (
     <main className="min-h-screen bg-slate-50 pb-24">
+
       {/* Header */}
       <header className="border-b border-slate-200 bg-white">
         <div className="mx-auto max-w-6xl px-5 py-4">
-          <div className="text-lg font-bold text-slate-900">
-            PTalk
-          </div>
+          <Link
+            href="/"
+            className="group flex flex-col"
+          >
+            <div className="text-lg font-bold text-slate-900 transition group-hover:text-blue-600">
+              PTalk
+            </div>
 
-          <div className="text-xs text-slate-400">
-            Medical Team
-          </div>
+            <div className="text-xs text-slate-400 transition group-hover:text-slate-500">
+              Medical Team
+            </div>
+          </Link>
         </div>
       </header>
 
       <div className="mx-auto max-w-6xl px-5 py-8">
+
         {/* Back */}
-        <a
+        <Link
           href={`/team/patients/${consultation.patient_id}`}
-          className="text-sm text-slate-500 hover:text-slate-900"
+          className="group inline-flex items-center gap-2 text-sm text-slate-500 transition hover:text-slate-900"
         >
-          ← Back to patient
-        </a>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            className="h-4 w-4 transition-transform group-hover:-translate-x-0.5"
+            stroke="currentColor"
+            strokeWidth="1.8"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="m15 18-6-6 6-6"
+            />
+          </svg>
+
+          Back to patient
+        </Link>
 
         {/* Heading */}
         <section className="mt-6">
@@ -190,7 +214,8 @@ export default async function TeamConsultationPage({
                   : "bg-slate-100 text-slate-700"
               }`}
             >
-              {consultation.urgency || "Not specified"}
+              {consultation.urgency ||
+                "Not specified"}
             </div>
           </div>
 
@@ -259,28 +284,30 @@ export default async function TeamConsultationPage({
                 No symptoms recorded.
               </div>
             ) : (
-              consultation.symptoms.map((symptom) => (
-                <div
-                  key={symptom.symptom_id}
-                  className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div>
-                      <h3 className="font-semibold text-slate-900">
-                        {symptom.symptom}
-                      </h3>
+              consultation.symptoms.map(
+                (symptom) => (
+                  <div
+                    key={symptom.symptom_id}
+                    className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <h3 className="font-semibold text-slate-900">
+                          {symptom.symptom}
+                        </h3>
 
-                      <p className="mt-2 text-sm leading-6 text-slate-600">
-                        {symptom.evidence}
-                      </p>
+                        <p className="mt-2 text-sm leading-6 text-slate-600">
+                          {symptom.evidence}
+                        </p>
+                      </div>
+
+                      <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
+                        {symptom.certainty}
+                      </span>
                     </div>
-
-                    <span className="shrink-0 rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-                      {symptom.certainty}
-                    </span>
                   </div>
-                </div>
-              ))
+                )
+              )
             )}
           </div>
         </section>
@@ -301,20 +328,22 @@ export default async function TeamConsultationPage({
             </p>
           ) : (
             <div className="mt-4 space-y-3">
-              {consultation.red_flags.map((flag, index) => (
-                <div
-                  key={index}
-                  className="rounded-xl border border-red-100 bg-red-50 p-4"
-                >
-                  <p className="font-medium text-red-800">
-                    {flag.symptom}
-                  </p>
+              {consultation.red_flags.map(
+                (flag, index) => (
+                  <div
+                    key={index}
+                    className="rounded-xl border border-red-100 bg-red-50 p-4"
+                  >
+                    <p className="font-medium text-red-800">
+                      {flag.symptom}
+                    </p>
 
-                  <p className="mt-1 text-sm leading-6 text-red-700">
-                    {flag.reason}
-                  </p>
-                </div>
-              ))}
+                    <p className="mt-1 text-sm leading-6 text-red-700">
+                      {flag.reason}
+                    </p>
+                  </div>
+                )
+              )}
             </div>
           )}
         </section>
@@ -338,26 +367,29 @@ export default async function TeamConsultationPage({
           </div>
 
           <div className="mt-4 space-y-3">
-            {consultation.disease_matches.length === 0 ? (
+            {consultation.disease_matches.length ===
+            0 ? (
               <p className="text-sm text-slate-500">
                 No disease matches recorded.
               </p>
             ) : (
-              consultation.disease_matches.map((match) => (
-                <div
-                  key={match.disease_id}
-                  className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 p-4"
-                >
-                  <span className="font-medium text-slate-800">
-                    {match.disease}
-                  </span>
+              consultation.disease_matches.map(
+                (match) => (
+                  <div
+                    key={match.disease_id}
+                    className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 p-4"
+                  >
+                    <span className="font-medium text-slate-800">
+                      {match.disease}
+                    </span>
 
-                  <span className="shrink-0 text-sm text-slate-500">
-                    {match.matching_symptoms} matching
-                    symptoms
-                  </span>
-                </div>
-              ))
+                    <span className="shrink-0 text-sm text-slate-500">
+                      {match.matching_symptoms}{" "}
+                      matching symptoms
+                    </span>
+                  </div>
+                )
+              )
             )}
           </div>
         </section>
@@ -369,6 +401,7 @@ export default async function TeamConsultationPage({
           </p>
 
           <div className="mt-4 space-y-3 text-sm">
+
             <div className="flex justify-between gap-4">
               <span className="text-slate-500">
                 Patient ID
@@ -389,27 +422,6 @@ export default async function TeamConsultationPage({
               </span>
             </div>
 
-            <div className="flex justify-between gap-4">
-              <span className="text-slate-500">
-                Duration
-              </span>
-
-              <span className="font-medium text-slate-800">
-                {consultation.duration ||
-                  "Not specified"}
-              </span>
-            </div>
-
-            <div className="flex justify-between gap-4">
-              <span className="text-slate-500">
-                Severity
-              </span>
-
-              <span className="font-medium text-slate-800">
-                {consultation.severity ||
-                  "Not specified"}
-              </span>
-            </div>
           </div>
         </section>
 
@@ -430,28 +442,36 @@ export default async function TeamConsultationPage({
             </p>
           </div>
         </section>
+
       </div>
 
       {/* Bottom navigation */}
       <nav className="fixed bottom-0 left-0 right-0 border-t border-slate-200 bg-white">
         <div className="mx-auto flex max-w-6xl justify-around px-4 py-3">
-          <a
-            href="/team"
-            className="flex flex-col items-center text-xs text-slate-500"
-          >
-            <span className="text-lg">▤</span>
-            Patients
-          </a>
 
-          <a
-            href="/team/knowledge-graph"
-            className="flex flex-col items-center text-xs text-slate-500"
+          <Link
+            href="/team"
+            className="flex flex-col items-center text-xs text-slate-500 transition hover:text-slate-900"
           >
-            <span className="text-lg">◇</span>
+            <span className="text-lg">
+              ▤
+            </span>
+            Patients
+          </Link>
+
+          <Link
+            href="/team/knowledge-graph"
+            className="flex flex-col items-center text-xs text-slate-500 transition hover:text-slate-900"
+          >
+            <span className="text-lg">
+              ◇
+            </span>
             Knowledge Graph
-          </a>
+          </Link>
+
         </div>
       </nav>
+
     </main>
   );
 }

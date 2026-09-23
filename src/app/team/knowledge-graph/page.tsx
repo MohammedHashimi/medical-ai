@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import LogoutButton from "@/components/LogoutButton";
+
 type GraphRow = {
   patient_id: string;
   consultation_id: string;
@@ -16,39 +18,44 @@ type GraphRow = {
 export default function KnowledgeGraphPage() {
   const [rows, setRows] = useState<GraphRow[]>([]);
   const [selectedDate, setSelectedDate] = useState("");
-  const [selectedPatient, setSelectedPatient] = useState<string | null>(
-    null
-  );
-  const [selectedConsultation, setSelectedConsultation] = useState<
-    string | null
-  >(null);
-  const [selectedSymptom, setSelectedSymptom] = useState<number | null>(null);
+  const [selectedPatient, setSelectedPatient] =
+    useState<string | null>(null);
+  const [selectedConsultation, setSelectedConsultation] =
+    useState<string | null>(null);
+  const [selectedSymptom, setSelectedSymptom] =
+    useState<number | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   /*
-   * Load graph data
+   * ============================================================
+   * LOAD GRAPH DATA
+   * ============================================================
    */
+
   useEffect(() => {
     async function loadGraph() {
       try {
         const response = await fetch(
-  "/api/team/knowledge-graph",
-  {
-    cache: "no-store",
-  }
-);
+          "/api/team/knowledge-graph",
+          {
+            cache: "no-store",
+          }
+        );
 
         if (!response.ok) {
-          throw new Error("Failed to load knowledge graph");
+          throw new Error(
+            "Failed to load knowledge graph"
+          );
         }
 
         const data = await response.json();
 
-        const normalized: GraphRow[] = Array.isArray(data)
-          ? data
-          : [data];
+        const normalized: GraphRow[] =
+          Array.isArray(data)
+            ? data
+            : [data];
 
         setRows(normalized);
 
@@ -57,7 +64,12 @@ export default function KnowledgeGraphPage() {
          */
         if (normalized.length > 0) {
           const latest = normalized
-            .map((row) => row.consultation_date.substring(0, 10))
+            .map((row) =>
+              row.consultation_date.substring(
+                0,
+                10
+              )
+            )
             .sort()
             .at(-1);
 
@@ -67,7 +79,9 @@ export default function KnowledgeGraphPage() {
         }
       } catch (err) {
         console.error(err);
-        setError("Knowledge graph could not be loaded.");
+        setError(
+          "Knowledge graph could not be loaded."
+        );
       } finally {
         setLoading(false);
       }
@@ -77,21 +91,32 @@ export default function KnowledgeGraphPage() {
   }, []);
 
   /*
-   * Available dates
+   * ============================================================
+   * AVAILABLE DATES
+   * ============================================================
    */
+
   const availableDates = useMemo(() => {
     return Array.from(
       new Set(
         rows.map((row) =>
-          row.consultation_date.substring(0, 10)
+          row.consultation_date.substring(
+            0,
+            10
+          )
         )
       )
-    ).sort((a, b) => b.localeCompare(a));
+    ).sort((a, b) =>
+      b.localeCompare(a)
+    );
   }, [rows]);
 
   /*
-   * Data for selected day
+   * ============================================================
+   * DATA FOR SELECTED DAY
+   * ============================================================
    */
+
   const dayRows = useMemo(() => {
     if (!selectedDate) {
       return rows;
@@ -99,30 +124,41 @@ export default function KnowledgeGraphPage() {
 
     return rows.filter(
       (row) =>
-        row.consultation_date.substring(0, 10) ===
-        selectedDate
+        row.consultation_date.substring(
+          0,
+          10
+        ) === selectedDate
     );
   }, [rows, selectedDate]);
 
   /*
-   * Patients for selected day
+   * ============================================================
+   * PATIENTS
+   * ============================================================
    */
+
   const patients = useMemo(() => {
     return Array.from(
-      new Set(dayRows.map((row) => row.patient_id))
+      new Set(
+        dayRows.map(
+          (row) => row.patient_id
+        )
+      )
     );
   }, [dayRows]);
 
   /*
-   * Consultations
-   *
-   * If a patient is selected, only that patient's
-   * consultations are shown.
+   * ============================================================
+   * CONSULTATIONS
+   * ============================================================
    */
+
   const consultations = useMemo(() => {
     const filtered = selectedPatient
       ? dayRows.filter(
-          (row) => row.patient_id === selectedPatient
+          (row) =>
+            row.patient_id ===
+            selectedPatient
         )
       : dayRows;
 
@@ -137,20 +173,22 @@ export default function KnowledgeGraphPage() {
   }, [dayRows, selectedPatient]);
 
   /*
-   * Symptoms
-   *
-   * Only show symptoms belonging to the selected
-   * consultation.
+   * ============================================================
+   * SYMPTOMS
+   * ============================================================
    */
+
   const symptoms = useMemo(() => {
     if (!selectedConsultation) {
       return [];
     }
 
-    const consultationRows = dayRows.filter(
-      (row) =>
-        row.consultation_id === selectedConsultation
-    );
+    const consultationRows =
+      dayRows.filter(
+        (row) =>
+          row.consultation_id ===
+          selectedConsultation
+      );
 
     return Array.from(
       new Map(
@@ -166,28 +204,30 @@ export default function KnowledgeGraphPage() {
   }, [dayRows, selectedConsultation]);
 
   /*
-   * Diseases
-   *
-   * First limit diseases to the selected consultation.
-   *
-   * If a symptom is selected, only diseases connected
-   * to that symptom are shown.
+   * ============================================================
+   * DISEASES
+   * ============================================================
    */
+
   const diseases = useMemo(() => {
     if (!selectedConsultation) {
       return [];
     }
 
-    let consultationRows = dayRows.filter(
-      (row) =>
-        row.consultation_id === selectedConsultation
-    );
+    let consultationRows =
+      dayRows.filter(
+        (row) =>
+          row.consultation_id ===
+          selectedConsultation
+      );
 
     if (selectedSymptom !== null) {
-      consultationRows = consultationRows.filter(
-        (row) =>
-          row.symptom_id === selectedSymptom
-      );
+      consultationRows =
+        consultationRows.filter(
+          (row) =>
+            row.symptom_id ===
+            selectedSymptom
+        );
     }
 
     return Array.from(
@@ -197,7 +237,8 @@ export default function KnowledgeGraphPage() {
           {
             id: row.disease_id,
             name: row.disease,
-            matchingSymptoms: row.matching_symptoms,
+            matchingSymptoms:
+              row.matching_symptoms,
           },
         ])
       ).values()
@@ -209,10 +250,17 @@ export default function KnowledgeGraphPage() {
   ]);
 
   /*
-   * Select patient
+   * ============================================================
+   * SELECT PATIENT
+   * ============================================================
    */
-  function handlePatientSelect(patientId: string) {
-    if (selectedPatient === patientId) {
+
+  function handlePatientSelect(
+    patientId: string
+  ) {
+    if (
+      selectedPatient === patientId
+    ) {
       setSelectedPatient(null);
       setSelectedConsultation(null);
       setSelectedSymptom(null);
@@ -225,30 +273,41 @@ export default function KnowledgeGraphPage() {
   }
 
   /*
-   * Select consultation
+   * ============================================================
+   * SELECT CONSULTATION
+   * ============================================================
    */
+
   function handleConsultationSelect(
     consultationId: string
   ) {
     if (
-      selectedConsultation === consultationId
+      selectedConsultation ===
+      consultationId
     ) {
       setSelectedConsultation(null);
       setSelectedSymptom(null);
       return;
     }
 
-    setSelectedConsultation(consultationId);
+    setSelectedConsultation(
+      consultationId
+    );
     setSelectedSymptom(null);
   }
 
   /*
-   * Select symptom
+   * ============================================================
+   * SELECT SYMPTOM
+   * ============================================================
    */
+
   function handleSymptomSelect(
     symptomId: number
   ) {
-    if (selectedSymptom === symptomId) {
+    if (
+      selectedSymptom === symptomId
+    ) {
       setSelectedSymptom(null);
       return;
     }
@@ -257,9 +316,14 @@ export default function KnowledgeGraphPage() {
   }
 
   /*
-   * Changing the date resets all selections.
+   * ============================================================
+   * CHANGE DATE
+   * ============================================================
    */
-  function handleDateChange(date: string) {
+
+  function handleDateChange(
+    date: string
+  ) {
     setSelectedDate(date);
     setSelectedPatient(null);
     setSelectedConsultation(null);
@@ -267,13 +331,22 @@ export default function KnowledgeGraphPage() {
   }
 
   /*
-   * Clear everything except date.
+   * ============================================================
+   * CLEAR SELECTION
+   * ============================================================
    */
+
   function clearSelection() {
     setSelectedPatient(null);
     setSelectedConsultation(null);
     setSelectedSymptom(null);
   }
+
+  /*
+   * ============================================================
+   * FORMAT DATE
+   * ============================================================
+   */
 
   function formatDate(date: string) {
     return new Date(
@@ -285,15 +358,26 @@ export default function KnowledgeGraphPage() {
     });
   }
 
+  /*
+   * ============================================================
+   * FORMAT TIME
+   * ============================================================
+   */
+
   function formatTime(date: string) {
-    return new Date(date).toLocaleTimeString(
-      "en-US",
-      {
-        hour: "2-digit",
-        minute: "2-digit",
-      }
-    );
+    return new Date(
+      date
+    ).toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   }
+
+  /*
+   * ============================================================
+   * LOADING
+   * ============================================================
+   */
 
   if (loading) {
     return (
@@ -307,6 +391,12 @@ export default function KnowledgeGraphPage() {
     );
   }
 
+  /*
+   * ============================================================
+   * ERROR
+   * ============================================================
+   */
+
   if (error) {
     return (
       <main className="min-h-screen bg-slate-50">
@@ -319,33 +409,61 @@ export default function KnowledgeGraphPage() {
     );
   }
 
+  /*
+   * ============================================================
+   * PAGE
+   * ============================================================
+   */
+
   return (
     <main className="min-h-screen bg-slate-50 pb-24">
+
       {/* Header */}
       <header className="border-b border-slate-200 bg-white">
-  <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
-    <div>
-      <div className="text-lg font-bold text-slate-900">
-        PTalk
-      </div>
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
 
-      <div className="text-xs text-slate-400">
-        Medical Team
-      </div>
-    </div>
+          {/* PTalk → Homepage */}
+          <Link
+            href="/"
+            className="group flex flex-col"
+          >
+            <div className="text-lg font-bold text-slate-900 transition group-hover:text-blue-600">
+              PTalk
+            </div>
 
-    <LogoutButton />
-  </div>
-</header>
+            <div className="text-xs text-slate-400 transition group-hover:text-slate-500">
+              Medical Team
+            </div>
+          </Link>
+
+          <LogoutButton />
+
+        </div>
+      </header>
 
       <div className="mx-auto max-w-7xl px-5 py-8">
+
         {/* Back */}
-        <a
+        <Link
           href="/team"
-          className="text-sm text-slate-500 hover:text-slate-900"
+          className="group inline-flex items-center gap-2 text-sm text-slate-500 transition hover:text-slate-900"
         >
-          ← Back to dashboard
-        </a>
+          <svg
+            viewBox="0 0 24 24"
+            fill="none"
+            className="h-4 w-4 transition-transform group-hover:-translate-x-0.5"
+            stroke="currentColor"
+            strokeWidth="1.8"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="m15 18-6-6 6-6"
+            />
+          </svg>
+
+          Back to dashboard
+        </Link>
 
         {/* Heading */}
         <section className="mt-6">
@@ -358,22 +476,24 @@ export default function KnowledgeGraphPage() {
           </h1>
 
           <p className="mt-2 max-w-3xl text-slate-500">
-            Select a patient, consultation, and symptom
-            to explore the related clinical data.
+            Select a patient, consultation, and
+            symptom to explore the related clinical
+            data.
           </p>
         </section>
 
         {/* Date filter */}
         <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+
             <div>
               <p className="text-sm font-medium text-slate-900">
                 Consultation day
               </p>
 
               <p className="mt-1 text-sm text-slate-500">
-                Select a day to limit the amount of graph
-                data.
+                Select a day to limit the amount of
+                graph data.
               </p>
             </div>
 
@@ -389,26 +509,33 @@ export default function KnowledgeGraphPage() {
                 id="date"
                 value={selectedDate}
                 onChange={(event) =>
-                  handleDateChange(event.target.value)
+                  handleDateChange(
+                    event.target.value
+                  )
                 }
                 className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none focus:border-slate-500"
               >
-                {availableDates.map((date) => (
-                  <option
-                    key={date}
-                    value={date}
-                  >
-                    {formatDate(date)}
-                  </option>
-                ))}
+                {availableDates.map(
+                  (date) => (
+                    <option
+                      key={date}
+                      value={date}
+                    >
+                      {formatDate(date)}
+                    </option>
+                  )
+                )}
               </select>
             </div>
+
           </div>
         </section>
 
         {/* Selection status */}
         <section className="mt-5 flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:flex-row md:items-center md:justify-between">
+
           <div className="flex flex-wrap items-center gap-2 text-sm">
+
             <span className="text-slate-500">
               Selected:
             </span>
@@ -450,6 +577,7 @@ export default function KnowledgeGraphPage() {
                 Symptom
               </span>
             )}
+
           </div>
 
           {(selectedPatient ||
@@ -458,15 +586,17 @@ export default function KnowledgeGraphPage() {
             <button
               type="button"
               onClick={clearSelection}
-              className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50"
             >
               Clear selection
             </button>
           )}
+
         </section>
 
         {/* Graph */}
         <section className="mt-8">
+
           <div className="mb-4">
             <p className="text-sm text-slate-500">
               Interactive graph
@@ -478,9 +608,12 @@ export default function KnowledgeGraphPage() {
           </div>
 
           <div className="overflow-x-auto">
+
             <div className="grid min-w-[1000px] grid-cols-4 gap-4">
+
               {/* PATIENTS */}
               <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+
                 <div className="border-b border-slate-200 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                     1. Patients
@@ -495,48 +628,54 @@ export default function KnowledgeGraphPage() {
                 </div>
 
                 <div className="max-h-[520px] space-y-2 overflow-y-auto p-3">
+
                   {patients.length === 0 ? (
                     <p className="p-3 text-sm text-slate-400">
                       No patients.
                     </p>
                   ) : (
-                    patients.map((patient) => {
-                      const selected =
-                        selectedPatient === patient;
+                    patients.map(
+                      (patient) => {
+                        const selected =
+                          selectedPatient ===
+                          patient;
 
-                      return (
-                        <button
-                          key={patient}
-                          type="button"
-                          onClick={() =>
-                            handlePatientSelect(
-                              patient
-                            )
-                          }
-                          className={`w-full rounded-xl border p-3 text-left transition ${
-                            selected
-                              ? "border-slate-900 bg-slate-900 text-white"
-                              : "border-slate-200 bg-white text-slate-800 hover:border-slate-400 hover:bg-slate-50"
-                          }`}
-                        >
-                          <p className="break-all font-mono text-xs">
-                            {patient}
-                          </p>
-
-                          {selected && (
-                            <p className="mt-2 text-xs text-slate-300">
-                              Selected
+                        return (
+                          <button
+                            key={patient}
+                            type="button"
+                            onClick={() =>
+                              handlePatientSelect(
+                                patient
+                              )
+                            }
+                            className={`w-full rounded-xl border p-3 text-left transition ${
+                              selected
+                                ? "border-slate-900 bg-slate-900 text-white"
+                                : "border-slate-200 bg-white text-slate-800 hover:border-slate-400 hover:bg-slate-50"
+                            }`}
+                          >
+                            <p className="break-all font-mono text-xs">
+                              {patient}
                             </p>
-                          )}
-                        </button>
-                      );
-                    })
+
+                            {selected && (
+                              <p className="mt-2 text-xs text-slate-300">
+                                Selected
+                              </p>
+                            )}
+                          </button>
+                        );
+                      }
+                    )
                   )}
+
                 </div>
               </div>
 
               {/* CONSULTATIONS */}
               <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+
                 <div className="border-b border-slate-200 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                     2. Consultations
@@ -551,6 +690,7 @@ export default function KnowledgeGraphPage() {
                 </div>
 
                 <div className="max-h-[520px] space-y-2 overflow-y-auto p-3">
+
                   {!selectedPatient ? (
                     <div className="rounded-xl bg-slate-50 p-4">
                       <p className="text-sm font-medium text-slate-700">
@@ -558,11 +698,12 @@ export default function KnowledgeGraphPage() {
                       </p>
 
                       <p className="mt-1 text-xs leading-5 text-slate-500">
-                        Consultations will appear here
-                        after selecting a patient.
+                        Consultations will appear
+                        here after selecting a patient.
                       </p>
                     </div>
-                  ) : consultations.length === 0 ? (
+                  ) : consultations.length ===
+                    0 ? (
                     <p className="p-3 text-sm text-slate-400">
                       No consultations.
                     </p>
@@ -612,11 +753,13 @@ export default function KnowledgeGraphPage() {
                       }
                     )
                   )}
+
                 </div>
               </div>
 
               {/* SYMPTOMS */}
               <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+
                 <div className="border-b border-slate-200 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                     3. Symptoms
@@ -631,6 +774,7 @@ export default function KnowledgeGraphPage() {
                 </div>
 
                 <div className="max-h-[520px] space-y-2 overflow-y-auto p-3">
+
                   {!selectedConsultation ? (
                     <div className="rounded-xl bg-slate-50 p-4">
                       <p className="text-sm font-medium text-slate-700">
@@ -638,8 +782,8 @@ export default function KnowledgeGraphPage() {
                       </p>
 
                       <p className="mt-1 text-xs leading-5 text-slate-500">
-                        Symptoms will appear here after
-                        selecting a consultation.
+                        Symptoms will appear here
+                        after selecting a consultation.
                       </p>
                     </div>
                   ) : symptoms.length === 0 ? (
@@ -647,47 +791,53 @@ export default function KnowledgeGraphPage() {
                       No symptoms.
                     </p>
                   ) : (
-                    symptoms.map((symptom) => {
-                      const selected =
-                        selectedSymptom === symptom.id;
+                    symptoms.map(
+                      (symptom) => {
+                        const selected =
+                          selectedSymptom ===
+                          symptom.id;
 
-                      return (
-                        <button
-                          key={symptom.id}
-                          type="button"
-                          onClick={() =>
-                            handleSymptomSelect(
-                              symptom.id
-                            )
-                          }
-                          className={`w-full rounded-xl border p-3 text-left transition ${
-                            selected
-                              ? "border-slate-900 bg-slate-900 text-white"
-                              : "border-slate-200 bg-white text-slate-800 hover:border-slate-400 hover:bg-slate-50"
-                          }`}
-                        >
-                          <p className="font-medium">
-                            {symptom.name}
-                          </p>
-
-                          <p
-                            className={`mt-1 text-xs ${
+                        return (
+                          <button
+                            key={symptom.id}
+                            type="button"
+                            onClick={() =>
+                              handleSymptomSelect(
+                                symptom.id
+                              )
+                            }
+                            className={`w-full rounded-xl border p-3 text-left transition ${
                               selected
-                                ? "text-slate-300"
-                                : "text-slate-400"
+                                ? "border-slate-900 bg-slate-900 text-white"
+                                : "border-slate-200 bg-white text-slate-800 hover:border-slate-400 hover:bg-slate-50"
                             }`}
                           >
-                            Symptom ID: {symptom.id}
-                          </p>
-                        </button>
-                      );
-                    })
+                            <p className="font-medium">
+                              {symptom.name}
+                            </p>
+
+                            <p
+                              className={`mt-1 text-xs ${
+                                selected
+                                  ? "text-slate-300"
+                                  : "text-slate-400"
+                              }`}
+                            >
+                              Symptom ID:{" "}
+                              {symptom.id}
+                            </p>
+                          </button>
+                        );
+                      }
+                    )
                   )}
+
                 </div>
               </div>
 
               {/* DISEASES */}
               <div className="rounded-2xl border border-slate-200 bg-white shadow-sm">
+
                 <div className="border-b border-slate-200 p-4">
                   <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
                     4. Diseases
@@ -702,6 +852,7 @@ export default function KnowledgeGraphPage() {
                 </div>
 
                 <div className="max-h-[520px] space-y-2 overflow-y-auto p-3">
+
                   {!selectedConsultation ? (
                     <div className="rounded-xl bg-slate-50 p-4">
                       <p className="text-sm font-medium text-slate-700">
@@ -709,8 +860,8 @@ export default function KnowledgeGraphPage() {
                       </p>
 
                       <p className="mt-1 text-xs leading-5 text-slate-500">
-                        Disease matches will appear here
-                        after selecting a consultation.
+                        Disease matches will appear
+                        here after selecting a consultation.
                       </p>
                     </div>
                   ) : diseases.length === 0 ? (
@@ -725,24 +876,30 @@ export default function KnowledgeGraphPage() {
                       </p>
                     </div>
                   ) : (
-                    diseases.map((disease) => (
-                      <div
-                        key={disease.id}
-                        className="rounded-xl border border-slate-200 bg-slate-50 p-3"
-                      >
-                        <p className="font-medium text-slate-900">
-                          {disease.name}
-                        </p>
+                    diseases.map(
+                      (disease) => (
+                        <div
+                          key={disease.id}
+                          className="rounded-xl border border-slate-200 bg-slate-50 p-3"
+                        >
+                          <p className="font-medium text-slate-900">
+                            {disease.name}
+                          </p>
 
-                        <p className="mt-1 text-xs text-slate-500">
-                          {disease.matchingSymptoms}{" "}
-                          matching symptoms
-                        </p>
-                      </div>
-                    ))
+                          <p className="mt-1 text-xs text-slate-500">
+                            {
+                              disease.matchingSymptoms
+                            }{" "}
+                            matching symptoms
+                          </p>
+                        </div>
+                      )
+                    )
                   )}
+
                 </div>
               </div>
+
             </div>
           </div>
         </section>
@@ -750,11 +907,13 @@ export default function KnowledgeGraphPage() {
         {/* Current selection */}
         {selectedConsultation && (
           <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+
             <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">
               Current graph path
             </p>
 
             <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
+
               <span className="rounded-lg bg-slate-100 px-3 py-2 font-medium text-slate-700">
                 Patient
               </span>
@@ -799,6 +958,7 @@ export default function KnowledgeGraphPage() {
                   All symptoms & diseases
                 </span>
               )}
+
             </div>
           </section>
         )}
@@ -810,34 +970,44 @@ export default function KnowledgeGraphPage() {
           </p>
 
           <p className="mt-2 text-sm leading-6 text-amber-800">
-            Disease matches shown here are derived from
-            the underlying symptom-matching dataset. They
-            should not be interpreted as confirmed
-            diagnoses.
+            Disease matches shown here are derived
+            from the underlying symptom-matching
+            dataset. They should not be interpreted as
+            confirmed diagnoses.
           </p>
         </section>
+
       </div>
 
       {/* Bottom navigation */}
       <nav className="fixed bottom-0 left-0 right-0 border-t border-slate-200 bg-white">
         <div className="mx-auto flex max-w-7xl justify-around px-4 py-3">
-          <a
-            href="/team"
-            className="flex flex-col items-center text-xs text-slate-500"
-          >
-            <span className="text-lg">▤</span>
-            Patients
-          </a>
 
-          <a
+          <Link
+            href="/team"
+            className="flex flex-col items-center text-xs text-slate-500 transition hover:text-slate-900"
+          >
+            <span className="text-lg">
+              ▤
+            </span>
+
+            Patients
+          </Link>
+
+          <Link
             href="/team/knowledge-graph"
             className="flex flex-col items-center text-xs text-slate-900"
           >
-            <span className="text-lg">◇</span>
+            <span className="text-lg">
+              ◇
+            </span>
+
             Knowledge Graph
-          </a>
+          </Link>
+
         </div>
       </nav>
+
     </main>
   );
 }

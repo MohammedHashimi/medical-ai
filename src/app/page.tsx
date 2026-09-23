@@ -1,22 +1,120 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
 
-export default function Home() {
-  return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 text-slate-900">
-      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col px-6">
+type ShowcaseItem = {
+  title: string;
+  description: string;
+  image: string;
+  features: string[];
+};
 
-        {/* Header */}
-        <header className="flex items-center justify-between py-6">
+const showcaseItems: ShowcaseItem[] = [
+  {
+    title: "Patient View",
+    description:
+      "A simple patient portal for consultations and health information.",
+    image: "/showcase/patient-view.png",
+    features: [
+      "New consultations",
+      "Health history",
+      "PTalk AI",
+    ],
+  },
+  {
+    title: "AI Assistant",
+    description:
+      "Ask PTalk about symptoms and previously reported health information.",
+    image: "/showcase/ai-assistant.png",
+    features: [
+      "Health questions",
+      "Symptom conversations",
+      "AI-assisted answers",
+    ],
+  },
+  {
+    title: "Medical Team View",
+    description:
+      "A structured overview of patients and clinical consultations.",
+    image: "/showcase/medical-team.png",
+    features: [
+      "Patient management",
+      "Consultation overview",
+      "Emergency cases",
+    ],
+  },
+  {
+    title: "Knowledge Graph",
+    description:
+      "Explore connections between patients, consultations, symptoms and diseases.",
+    image: "/showcase/knowledge-graph.png",
+    features: [
+      "Patient → Consultation",
+      "Symptoms",
+      "Disease relationships",
+    ],
+  },
+];
+
+export default function HomePage() {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+
+  useEffect(() => {
+    if (isPaused) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setActiveIndex((current) =>
+        current === showcaseItems.length - 1
+          ? 0
+          : current + 1
+      );
+    }, 4500);
+
+    return () => clearInterval(interval);
+  }, [isPaused]);
+
+  const activeItem = showcaseItems[activeIndex];
+
+  const previousSlide = () => {
+    setActiveIndex((current) =>
+      current === 0
+        ? showcaseItems.length - 1
+        : current - 1
+    );
+  };
+
+  const nextSlide = () => {
+    setActiveIndex((current) =>
+      current === showcaseItems.length - 1
+        ? 0
+        : current + 1
+    );
+  };
+
+  return (
+    <main className="min-h-screen bg-white text-slate-950">
+
+      {/* ===================================================== */}
+      {/* HEADER */}
+      {/* ===================================================== */}
+
+      <header className="border-b border-slate-100 bg-white/90 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-8">
+
           <Link
             href="/"
             className="flex items-center gap-3"
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-900 text-lg font-bold text-white shadow-sm">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-950 text-lg font-bold text-white shadow-sm">
               P
             </div>
 
             <div>
-              <div className="text-xl font-bold tracking-tight">
+              <div className="text-xl font-bold tracking-tight text-slate-950">
                 PTalk
               </div>
 
@@ -26,317 +124,502 @@ export default function Home() {
             </div>
           </Link>
 
-          <Link
-            href="/login"
-            className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
-          >
-            Sign in
-          </Link>
-        </header>
+          {/* Navigation */}
+          <nav className="hidden items-center gap-8 md:flex">
 
-        {/* Hero */}
-        <section className="flex flex-1 items-center py-16 lg:py-20">
-          <div className="grid w-full items-center gap-16 lg:grid-cols-[1.05fr_0.95fr]">
+            <a
+              href="#home"
+              className="text-sm font-medium text-blue-600"
+            >
+              Home
+            </a>
 
-            {/* Left side */}
+            <a
+              href="#about"
+              className="text-sm font-medium text-slate-600 transition hover:text-blue-600"
+            >
+              About
+            </a>
+
+          </nav>
+
+          {/* Authentication */}
+          <div className="flex items-center gap-3">
+
+            <Link
+              href="/login"
+              className="rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:border-blue-200 hover:bg-blue-50/50 hover:text-blue-600"
+            >
+              Sign in
+            </Link>
+
+            <Link
+              href="/register"
+              className="rounded-xl bg-blue-600 px-5 py-2.5 text-sm font-medium text-white shadow-sm transition hover:bg-blue-700"
+            >
+              Get Started
+            </Link>
+
+          </div>
+
+        </div>
+      </header>
+
+
+      {/* ===================================================== */}
+      {/* HERO */}
+      {/* ===================================================== */}
+
+      <section
+        id="home"
+        className="relative overflow-hidden"
+      >
+
+        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-white via-white to-blue-50/70" />
+
+        <div className="mx-auto max-w-7xl px-6 pb-16 pt-14 lg:px-8 lg:pb-20 lg:pt-20">
+
+          <div className="grid items-center gap-14 lg:grid-cols-[0.88fr_1.12fr]">
+
+            {/* ================================================= */}
+            {/* HERO LEFT */}
+            {/* ================================================= */}
+
             <div>
 
-              <div className="mb-6 inline-flex items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-medium text-slate-500 shadow-sm">
+              {/* Project badge */}
+              <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-blue-50/70 px-4 py-2 text-xs font-medium text-blue-700">
+
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />
+
                 Clinical AI Research Project
+
               </div>
 
-              <h1 className="max-w-3xl text-5xl font-bold leading-[1.08] tracking-tight text-slate-950 sm:text-6xl lg:text-7xl">
-                Better communication.
-                <span className="block text-slate-500">
-                  Smarter healthcare.
+
+              {/* Main headline */}
+              <h1 className="max-w-2xl text-5xl font-semibold leading-[1.04] tracking-[-0.045em] text-slate-950 sm:text-6xl lg:text-[66px]">
+
+                From Conversation
+                <br />
+
+                to{" "}
+                <span className="text-blue-600">
+                  Better Care
                 </span>
+
               </h1>
 
-              <p className="mt-7 max-w-2xl text-lg leading-8 text-slate-500">
-                PTalk is a research project of PTIT exploring
-                AI-assisted clinical communication and intelligent
-                healthcare applications.
+
+              {/* Description */}
+              <p className="mt-7 max-w-xl text-lg leading-8 text-slate-600">
+                PTalk helps patients and medical teams understand
+                symptoms, structure consultations and access
+                medical knowledge — powered by AI.
               </p>
 
-              <div className="mt-10 flex flex-col gap-3 sm:flex-row">
+
+              {/* CTA buttons */}
+              <div className="mt-9 flex flex-wrap gap-4">
+
                 <Link
                   href="/login"
-                  className="rounded-xl bg-slate-900 px-7 py-3.5 text-center text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-800 hover:shadow-md"
+                  className="inline-flex items-center gap-3 rounded-xl bg-blue-600 px-6 py-3.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 hover:shadow-md"
                 >
-                  Get started
+                  Get Started
+
+                  <span className="text-lg leading-none">
+                    →
+                  </span>
                 </Link>
 
                 <Link
                   href="/register"
-                  className="rounded-xl border border-slate-200 bg-white px-7 py-3.5 text-center text-sm font-semibold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:bg-slate-50"
+                  className="inline-flex items-center rounded-xl border border-slate-200 bg-white px-6 py-3.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-blue-200 hover:bg-blue-50/50 hover:text-blue-600"
                 >
                   Create account
                 </Link>
+
               </div>
 
-              {/* Research affiliation */}
-              <div className="mt-14 flex items-center gap-5 border-t border-slate-200 pt-7">
-                <div className="flex h-20 w-24 items-center justify-center rounded-xl bg-white p-2 shadow-sm">
-                  <img
-                    src="/ptit-logo.png"
-                    alt="PTIT"
-                    className="max-h-full max-w-full object-contain"
-                  />
-                </div>
 
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
-                    Research Project
-                  </p>
+              {/* ================================================= */}
+              {/* BENEFITS */}
+              {/* ================================================= */}
 
-                  <p className="mt-1 text-sm font-semibold text-slate-700">
-                    A research project of PTIT
-                  </p>
+              <div className="mt-12 grid max-w-2xl grid-cols-1 gap-7 sm:grid-cols-3">
 
-                  <p className="mt-1 text-xs leading-5 text-slate-400">
-                    Research & Development in Clinical AI
-                  </p>
-                </div>
+                <Benefit
+                  icon="↯"
+                  title="Save Time"
+                  description="Less documentation, more patient care"
+                />
+
+                <Benefit
+                  icon="◇"
+                  title="Detect Early"
+                  description="AI identifies urgent red flags"
+                />
+
+                <Benefit
+                  icon="♧"
+                  title="Better Outcomes"
+                  description="Structured insights for informed decisions"
+                />
+
               </div>
 
-            </div>
 
-            {/* Right side */}
-            <div className="relative">
+              {/* ================================================= */}
+              {/* PTIT RESEARCH AFFILIATION */}
+              {/* ================================================= */}
 
-              <div className="absolute -inset-8 rounded-[3rem] bg-slate-200/50 blur-3xl" />
+              <div className="mt-12 border-t border-slate-200 pt-7">
 
-              <div className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-white shadow-2xl shadow-slate-200/60">
+                <div className="flex items-center gap-5">
 
-                {/* Card header */}
-                <div className="border-b border-slate-100 px-6 py-5">
-                  <div className="flex items-center justify-between">
+                  <div className="flex h-20 w-24 shrink-0 items-center justify-center rounded-xl border border-slate-100 bg-white p-2 shadow-sm">
 
-                    <div>
-                      <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
-                        PTalk
-                      </p>
-
-                      <h2 className="mt-1 text-lg font-semibold text-slate-900">
-                        Clinical Overview
-                      </h2>
-                    </div>
-
-                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-900 text-xs font-bold text-white">
-                      AI
-                    </div>
-
-                  </div>
-                </div>
-
-                {/* Card content */}
-                <div className="space-y-4 p-6">
-
-                  {/* Patient consultation */}
-                  <div className="rounded-2xl bg-slate-50 p-5">
-
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
-                          Patient
-                        </p>
-
-                        <p className="mt-2 font-semibold text-slate-900">
-                          Consultation
-                        </p>
-                      </div>
-
-                      <span className="rounded-full bg-white px-3 py-1 text-xs font-medium text-slate-500 shadow-sm">
-                        Active
-                      </span>
-                    </div>
+                    <img
+                      src="/ptit-logo.png"
+                      alt="PTIT"
+                      className="max-h-full max-w-full object-contain"
+                    />
 
                   </div>
 
-                  {/* AI */}
-                  <div className="rounded-2xl border border-slate-100 p-5">
+                  <div>
 
-                    <div className="flex items-center gap-3">
+                    <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
+                      Research Project
+                    </p>
 
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-xs font-bold text-white">
-                        AI
-                      </div>
+                    <p className="mt-1 text-sm font-semibold text-slate-700">
+                      A research project of PTIT
+                    </p>
 
-                      <div>
-                        <p className="text-sm font-semibold text-slate-900">
-                          PTalk AI
-                        </p>
-
-                        <p className="text-xs text-slate-400">
-                          Clinical assistance
-                        </p>
-                      </div>
-
-                    </div>
-
-                    <p className="mt-4 text-sm leading-6 text-slate-500">
-                      Ask questions, explore health information
-                      and better understand your consultation.
+                    <p className="mt-1 text-xs leading-5 text-slate-400">
+                      Research & Development in Clinical AI
                     </p>
 
                   </div>
 
-                  {/* Statistics */}
-                  <div className="grid grid-cols-2 gap-4">
+                </div>
 
-                    <div className="rounded-2xl bg-slate-50 p-4">
-                      <p className="text-xs text-slate-400">
-                        Consultations
-                      </p>
+              </div>
 
-                      <p className="mt-2 text-2xl font-bold text-slate-900">
-                        —
-                      </p>
+            </div>
 
-                      <p className="mt-1 text-xs text-slate-400">
-                        Patient history
-                      </p>
+
+            {/* ================================================= */}
+            {/* HERO SHOWCASE */}
+            {/* ================================================= */}
+
+            <div
+              className="relative"
+              onMouseEnter={() => setIsPaused(true)}
+              onMouseLeave={() => setIsPaused(false)}
+            >
+
+              {/* Background glow */}
+              <div className="absolute -inset-8 rounded-[3rem] bg-blue-100/40 blur-3xl" />
+
+
+              {/* Main showcase */}
+              <div className="relative rounded-[28px] border border-slate-200 bg-white p-3 shadow-[0_25px_80px_rgba(15,23,42,0.12)]">
+
+                <div className="overflow-hidden rounded-[21px] border border-slate-100 bg-slate-50">
+
+                  {/* Browser header */}
+                  <div className="flex h-11 items-center justify-between border-b border-slate-100 bg-white px-5">
+
+                    <div className="flex items-center gap-2">
+
+                      <span className="h-2.5 w-2.5 rounded-full bg-slate-200" />
+
+                      <span className="h-2.5 w-2.5 rounded-full bg-slate-200" />
+
+                      <span className="h-2.5 w-2.5 rounded-full bg-slate-200" />
+
                     </div>
 
-                    <div className="rounded-2xl bg-slate-50 p-4">
-                      <p className="text-xs text-slate-400">
-                        AI Assistant
-                      </p>
+                    <span className="text-xs font-medium text-slate-400">
+                      PTalk
+                    </span>
 
-                      <p className="mt-2 text-sm font-semibold text-slate-900">
-                        Available
-                      </p>
+                    <div className="w-12" />
 
-                      <p className="mt-1 text-xs text-slate-400">
-                        Clinical support
-                      </p>
-                    </div>
+                  </div>
+
+
+                  {/* Screenshots */}
+                  <div className="relative aspect-[16/10] overflow-hidden bg-slate-100">
+
+                    {showcaseItems.map((item, index) => (
+                      <img
+                        key={item.image}
+                        src={item.image}
+                        alt={item.title}
+                        className={`absolute inset-0 h-full w-full object-cover object-top transition-all duration-700 ${
+                          index === activeIndex
+                            ? "scale-100 opacity-100"
+                            : "scale-[1.015] opacity-0"
+                        }`}
+                      />
+                    ))}
 
                   </div>
 
                 </div>
 
+
+                {/* ================================================= */}
+                {/* PREVIOUS BUTTON */}
+                {/* ================================================= */}
+
+                <button
+                  type="button"
+                  onClick={previousSlide}
+                  aria-label="Previous showcase"
+                  className="group absolute left-[-22px] top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white shadow-lg shadow-slate-300/30 transition-all duration-200 hover:-translate-x-0.5 hover:border-blue-200 hover:shadow-xl"
+                >
+
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    className="h-5 w-5 text-slate-500 transition group-hover:text-blue-600"
+                  >
+
+                    <path
+                      d="M14.5 5L8.5 12L14.5 19"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+
+                  </svg>
+
+                </button>
+
+
+                {/* ================================================= */}
+                {/* NEXT BUTTON */}
+                {/* ================================================= */}
+
+                <button
+                  type="button"
+                  onClick={nextSlide}
+                  aria-label="Next showcase"
+                  className="group absolute right-[-22px] top-1/2 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-slate-200 bg-white shadow-lg shadow-slate-300/30 transition-all duration-200 hover:translate-x-0.5 hover:border-blue-200 hover:shadow-xl"
+                >
+
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    className="h-5 w-5 text-slate-500 transition group-hover:text-blue-600"
+                  >
+
+                    <path
+                      d="M9.5 5L15.5 12L9.5 19"
+                      stroke="currentColor"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+
+                  </svg>
+
+                </button>
+
+              </div>
+
+
+              {/* ================================================= */}
+              {/* SLIDE INFO */}
+              {/* ================================================= */}
+
+              <div className="mt-5 flex items-center justify-between px-2">
+
+                <div>
+
+                  <h2 className="text-base font-semibold text-slate-950">
+                    {activeItem.title}
+                  </h2>
+
+                  <p className="mt-1 text-sm text-slate-500">
+                    {activeItem.description}
+                  </p>
+
+                </div>
+
+                <span className="text-sm font-medium text-slate-400">
+                  {activeIndex + 1} / {showcaseItems.length}
+                </span>
+
+              </div>
+
+
+              {/* ================================================= */}
+              {/* DOTS */}
+              {/* ================================================= */}
+
+              <div className="mt-4 flex justify-center gap-2">
+
+                {showcaseItems.map((item, index) => (
+                  <button
+                    key={item.title}
+                    type="button"
+                    onClick={() => setActiveIndex(index)}
+                    aria-label={`Show ${item.title}`}
+                    className={`h-2 rounded-full transition-all duration-300 ${
+                      index === activeIndex
+                        ? "w-7 bg-blue-600"
+                        : "w-2 bg-slate-300 hover:bg-slate-400"
+                    }`}
+                  />
+                ))}
+
               </div>
 
             </div>
 
           </div>
-        </section>
 
-        {/* Access section */}
-        <section className="border-t border-slate-200 py-10">
 
-          <div className="mb-6">
-            <p className="text-xs font-medium uppercase tracking-[0.18em] text-slate-400">
-              Platform access
-            </p>
+          {/* ===================================================== */}
+          {/* SHOWCASE TILES */}
+          {/* ===================================================== */}
 
-            <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-900">
-              Choose your workspace
-            </h2>
+          <div className="mt-16 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
 
-            <p className="mt-2 text-sm text-slate-500">
-              PTalk provides dedicated experiences for patients
-              and medical teams.
-            </p>
-          </div>
+            {showcaseItems.map((item, index) => (
 
-          <div className="grid gap-4 md:grid-cols-2">
+              <button
+                key={item.title}
+                type="button"
+                onClick={() => setActiveIndex(index)}
+                className={`group text-left ${
+                  index === activeIndex
+                    ? "opacity-100"
+                    : "opacity-90"
+                }`}
+              >
 
-            {/* Patient */}
-            <Link
-              href="/login"
-              className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
-            >
-              <div className="flex items-start justify-between">
+                <div
+                  className={`overflow-hidden rounded-2xl border bg-white transition-all duration-200 ${
+                    index === activeIndex
+                      ? "border-blue-400 shadow-md shadow-blue-100"
+                      : "border-slate-200 shadow-sm group-hover:border-blue-200 group-hover:shadow-md"
+                  }`}
+                >
 
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
-                    For patients
-                  </p>
+                  <div className="aspect-[16/10] overflow-hidden bg-slate-50">
 
-                  <h2 className="mt-2 text-xl font-semibold text-slate-900">
-                    Patient Portal
-                  </h2>
+                    <img
+                      src={item.image}
+                      alt={item.title}
+                      className="h-full w-full object-cover object-top transition duration-500 group-hover:scale-[1.02]"
+                    />
 
-                  <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
-                    Access your consultations, health information
-                    and PTalk AI.
-                  </p>
+                  </div>
+
                 </div>
 
-                <span className="text-xl text-slate-400 transition group-hover:translate-x-1 group-hover:text-slate-900">
-                  →
-                </span>
 
-              </div>
-            </Link>
+                <div className="px-1">
 
-            {/* Medical team */}
-            <Link
-              href="/login"
-              className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md"
-            >
-              <div className="flex items-start justify-between">
+                  <h3 className="mt-4 text-base font-semibold text-slate-950">
+                    {item.title}
+                  </h3>
 
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wider text-slate-400">
-                    For medical teams
+                  <p className="mt-1 min-h-[48px] text-sm leading-6 text-slate-500">
+                    {item.description}
                   </p>
 
-                  <h2 className="mt-2 text-xl font-semibold text-slate-900">
-                    Medical Workspace
-                  </h2>
 
-                  <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
-                    Review patients, consultations and relevant
-                    clinical information.
-                  </p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+
+                    {item.features.map((feature) => (
+                      <span
+                        key={feature}
+                        className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-medium text-slate-600"
+                      >
+                        {feature}
+                      </span>
+                    ))}
+
+                  </div>
+
                 </div>
 
-                <span className="text-xl text-slate-400 transition group-hover:translate-x-1 group-hover:text-slate-900">
-                  →
-                </span>
+              </button>
 
-              </div>
-            </Link>
-
-          </div>
-        </section>
-
-        {/* Research section */}
-        <section className="border-t border-slate-200 py-12">
-
-          <div className="mx-auto max-w-3xl text-center">
-
-            <div className="mx-auto flex h-24 w-32 items-center justify-center rounded-2xl border border-slate-100 bg-white p-3 shadow-sm">
-              <img
-                src="/ptit-logo.png"
-                alt="PTIT"
-                className="max-h-full max-w-full object-contain"
-              />
-            </div>
-
-            <p className="mt-6 text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
-              Research & Development
-            </p>
-
-            <h2 className="mt-3 text-2xl font-bold tracking-tight text-slate-900">
-              PTalk is a research project of PTIT
-            </h2>
-
-            <p className="mx-auto mt-3 max-w-xl text-sm leading-6 text-slate-500">
-              The project explores the use of artificial intelligence
-              to support communication, information access and
-              clinical workflows in healthcare.
-            </p>
+            ))}
 
           </div>
 
-        </section>
+        </div>
 
-        {/* Footer */}
-        <footer className="flex flex-col gap-2 border-t border-slate-200 py-6 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+      </section>
+
+
+   
+
+
+      {/* ===================================================== */}
+{/* ABOUT / PTIT */}
+{/* ===================================================== */}
+
+<section
+  id="about"
+  className="border-t border-slate-100 bg-slate-50/60"
+>
+  <div className="mx-auto max-w-4xl px-6 py-20 text-center lg:px-8">
+
+    <div className="mx-auto flex h-24 w-32 items-center justify-center rounded-2xl border border-slate-100 bg-white p-3 shadow-sm">
+      <img
+        src="/ptit-logo.png"
+        alt="PTIT"
+        className="max-h-full max-w-full object-contain"
+      />
+    </div>
+
+    <p className="mt-6 text-xs font-medium uppercase tracking-[0.2em] text-slate-400">
+      Research & Development
+    </p>
+
+    <h2 className="mt-3 text-3xl font-semibold tracking-tight text-slate-950">
+      PTalk is a research project of PTIT
+    </h2>
+
+    <p className="mx-auto mt-4 max-w-2xl text-base leading-7 text-slate-500">
+      PTalk was developed as part of a research project at PTIT
+      under the supervision of{" "}
+      <a
+        href="https://www.linkedin.com/in/thuongvv/"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="font-medium text-slate-700 underline decoration-slate-300 underline-offset-4 transition hover:text-blue-600 hover:decoration-blue-300"
+      >
+        Lecturer Thuong Vu Van
+      </a>
+      .
+    </p>
+
+    <p className="mt-4 text-sm text-slate-400">
+      Research & Development in Clinical AI
+    </p>
+
+  </div>
+</section>
+      {/* ===================================================== */}
+      {/* FOOTER */}
+      {/* ===================================================== */}
+
+      <footer className="border-t border-slate-200 bg-white">
+
+        <div className="mx-auto flex max-w-7xl flex-col gap-2 px-6 py-7 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between lg:px-8">
 
           <p>
             PTalk · Clinical AI Research Project
@@ -346,9 +629,47 @@ export default function Home() {
             A research project of PTIT
           </p>
 
-        </footer>
+        </div>
+
+      </footer>
+
+    </main>
+  );
+}
+
+
+/* ========================================================= */
+/* BENEFIT COMPONENT */
+/* ========================================================= */
+
+function Benefit({
+  icon,
+  title,
+  description,
+}: {
+  icon: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <div className="flex gap-3">
+
+      <div className="flex h-9 w-9 shrink-0 items-center justify-center text-2xl font-light text-blue-600">
+        {icon}
+      </div>
+
+      <div>
+
+        <h3 className="text-sm font-semibold text-slate-950">
+          {title}
+        </h3>
+
+        <p className="mt-1 text-sm leading-5 text-slate-500">
+          {description}
+        </p>
 
       </div>
-    </main>
+
+    </div>
   );
 }

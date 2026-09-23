@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import BottomNavigation from "@/components/BottomNavigation";
 type Symptom = {
   symptom_id: number;
   symptom: string;
@@ -88,6 +89,7 @@ export default async function ConsultationPage({
 
   const consultation: Consultation =
     JSON.parse(responseText);
+
   const date = new Date(
     consultation.consultation_date
   ).toLocaleDateString("en-US", {
@@ -322,7 +324,7 @@ export default async function ConsultationPage({
             Red flags
           </h2>
 
-          {consultation.red_flags.length === 0 ? (
+          {(consultation.red_flags ?? []).length === 0 ? (
 
             <p className="mt-4 text-sm text-slate-500">
               No red flags recorded.
@@ -417,67 +419,35 @@ export default async function ConsultationPage({
 
         </section>
 
-        {/* Consultation Information */}
-        <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-
-          <p className="text-sm text-slate-500">
-            Consultation information
-          </p>
-
-          <div className="mt-4 space-y-3 text-sm">
-
-            <div className="flex justify-between gap-4">
-
-              <span className="text-slate-500">
-                Language
-              </span>
-
-              <span className="font-medium text-slate-800">
-                {consultation.language}
-              </span>
-
-            </div>
-
-            <div className="flex justify-between gap-4">
-
-              <span className="text-slate-500">
-                Duration
-              </span>
-
-              <span className="font-medium text-slate-800">
-                {consultation.duration ||
-                  "Not specified"}
-              </span>
-
-            </div>
-
-            <div className="flex justify-between gap-4">
-
-              <span className="text-slate-500">
-                Severity
-              </span>
-
-              <span className="font-medium text-slate-800">
-                {consultation.severity ||
-                  "Not specified"}
-              </span>
-
-            </div>
-
-          </div>
-
-        </section>
-
         {/* Original Transcript */}
         <section className="mt-8 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
 
-          <p className="text-sm text-slate-500">
-            Original consultation
-          </p>
+          <div className="flex items-start justify-between gap-4">
 
-          <h2 className="mt-1 text-xl font-semibold text-slate-900">
-            Transcript
-          </h2>
+            <div>
+
+              <p className="text-sm text-slate-500">
+                Original consultation
+              </p>
+
+              <h2 className="mt-1 text-xl font-semibold text-slate-900">
+                Transcript
+              </h2>
+
+            </div>
+
+            {consultation.language && (
+  <div className="shrink-0 text-right">
+    <p className="text-xs text-slate-500">
+      Language
+    </p>
+    <p className="mt-1 text-sm font-medium text-slate-800">
+      {consultation.language}
+    </p>
+  </div>
+)}
+
+          </div>
 
           <div className="mt-4 rounded-xl bg-slate-50 p-4">
 
@@ -493,45 +463,7 @@ export default async function ConsultationPage({
       </div>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 border-t border-slate-200 bg-white">
-
-        <div className="mx-auto flex max-w-5xl justify-around px-4 py-3">
-
-          <a
-            href="/patient"
-            className="flex flex-col items-center text-xs text-slate-500"
-          >
-            <span className="text-lg">⌂</span>
-            Home
-          </a>
-
-          <a
-            href="/patient/history"
-            className="flex flex-col items-center text-xs text-slate-900"
-          >
-            <span className="text-lg">▤</span>
-            History
-          </a>
-
-          <a
-            href="/patient"
-            className="flex flex-col items-center text-xs text-slate-500"
-          >
-            <span className="text-lg">✦</span>
-            AI
-          </a>
-
-          <a
-            href="/patient/profile"
-            className="flex flex-col items-center text-xs text-slate-500"
-          >
-            <span className="text-lg">○</span>
-            Profile
-          </a>
-
-        </div>
-
-      </nav>
+                <BottomNavigation/>
 
     </main>
   );

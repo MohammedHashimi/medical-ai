@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import LogoutButton from "../../../components/LogoutButton";
 import PatientBottomNav from "../../../components/BottomNavigation";
+
 type AuthUser = {
   id: string;
   role: "patient" | "medical_team";
@@ -113,15 +114,18 @@ export default async function PatientProfilePage() {
 
           <div className="flex items-center justify-between">
 
-            <div>
-              <div className="text-lg font-bold text-slate-900">
+            <Link
+              href="/"
+              className="group flex flex-col"
+            >
+              <div className="text-lg font-bold text-slate-900 transition group-hover:text-blue-600">
                 PTalk
               </div>
 
-              <div className="text-xs text-slate-400">
+              <div className="text-xs text-slate-400 transition group-hover:text-slate-500">
                 Patient Portal
               </div>
-            </div>
+            </Link>
 
             <LogoutButton />
 
@@ -231,7 +235,7 @@ export default async function PatientProfilePage() {
 
             <Link
               href="/patient/profile/edit"
-              className="flex w-full items-center justify-between rounded-2xl bg-slate-800 px-5 py-4 text-white transition hover:bg-slate-700"
+              className="group flex w-full items-center justify-between rounded-2xl bg-slate-800 px-5 py-4 text-white transition hover:bg-slate-700"
             >
               <div>
                 <p className="font-medium">
@@ -243,9 +247,21 @@ export default async function PatientProfilePage() {
                 </p>
               </div>
 
-              <span className="text-xl">
-                →
-              </span>
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/10 transition group-hover:bg-white/15">
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  className="h-5 w-5 text-white transition-transform group-hover:translate-x-0.5"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="m9 18 6-6-6-6"
+                  />
+                </svg>
+              </div>
             </Link>
 
           </div>
@@ -277,18 +293,34 @@ export default async function PatientProfilePage() {
 
         {/* Back */}
         <div className="mt-6">
+
           <Link
             href="/patient"
-            className="text-sm font-medium text-slate-500 hover:text-slate-900"
+            className="group inline-flex items-center gap-2 text-sm font-medium text-slate-500 transition hover:text-slate-900"
           >
-            ← Back to dashboard
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              className="h-4 w-4 transition-transform group-hover:-translate-x-0.5"
+              stroke="currentColor"
+              strokeWidth="1.8"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="m15 18-6-6 6-6"
+              />
+            </svg>
+
+            Back to dashboard
           </Link>
+
         </div>
 
       </div>
 
       {/* Bottom Navigation */}
-<PatientBottomNav />
+      <PatientBottomNav />
 
     </main>
   );

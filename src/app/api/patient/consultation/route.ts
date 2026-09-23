@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 const BACKEND_URL = "http://localhost:4000";
+
 const N8N_WEBHOOK_URL =
   process.env.N8N_CONSULTATION_WEBHOOK_URL;
 
@@ -10,9 +11,11 @@ export async function POST(request: Request) {
     console.log(
       "=========================================="
     );
+
     console.log(
       "PTALK CONSULTATION: POST received"
     );
+
     console.log(
       "=========================================="
     );
@@ -56,16 +59,6 @@ export async function POST(request: Request) {
      * ============================================================
      * 2. ASK BACKEND WHO IS LOGGED IN
      * ============================================================
-     *
-     * Send the session as BOTH:
-     *
-     *   Authorization: Bearer ...
-     *
-     * and
-     *
-     *   Cookie: ptalk_session=...
-     *
-     * This removes ambiguity between the two authentication paths.
      */
 
     console.log(
@@ -254,6 +247,9 @@ export async function POST(request: Request) {
     const audio =
       formData.get("audio");
 
+    const languageValue =
+      formData.get("language");
+
     console.log(
       "PTALK CONSULTATION: audio received:",
       audio instanceof File
@@ -264,6 +260,17 @@ export async function POST(request: Request) {
           }
         : null
     );
+
+    console.log(
+      "PTALK CONSULTATION: language received:",
+      languageValue
+    );
+
+    /*
+     * ============================================================
+     * 9. VALIDATE AUDIO
+     * ============================================================
+     */
 
     if (!(audio instanceof File)) {
       return NextResponse.json(
@@ -276,12 +283,6 @@ export async function POST(request: Request) {
         }
       );
     }
-
-    /*
-     * ============================================================
-     * 9. VALIDATE AUDIO
-     * ============================================================
-     */
 
     if (audio.size <= 0) {
       return NextResponse.json(
@@ -312,7 +313,42 @@ export async function POST(request: Request) {
 
     /*
      * ============================================================
-     * 10. CHECK N8N CONFIGURATION
+     * 10. VALIDATE LANGUAGE
+     * ============================================================
+     *
+     * Supported languages:
+     *
+     * vi = Vietnamese
+     * en = English
+     */
+
+    const language =
+      languageValue === "en"
+        ? "en"
+        : languageValue === "vi"
+          ? "vi"
+          : null;
+
+    if (!language) {
+      return NextResponse.json(
+        {
+          error:
+            "Invalid or missing consultation language. Use 'vi' or 'en'.",
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    console.log(
+      "PTALK CONSULTATION: selected language:",
+      language
+    );
+
+    /*
+     * ============================================================
+     * 11. CHECK N8N CONFIGURATION
      * ============================================================
      */
 
@@ -338,49 +374,72 @@ export async function POST(request: Request) {
 
     /*
      * ============================================================
-     * 11. CREATE N8N REQUEST
+     * 12. CREATE N8N REQUEST
      * ============================================================
      */
 
     const n8nFormData =
-  new FormData();
+      new FormData();
 
-n8nFormData.append(
-  "audio",
-  audio,
-  audio.name
-);
+    /*
+     * Audio file
+     */
+    n8nFormData.append(
+      "audio",
+      audio,
+      audio.name
+    );
 
-n8nFormData.append(
-  "patient_id",
-  patientId
-);
+    /*
+     * Authenticated patient
+     */
+    n8nFormData.append(
+      "patient_id",
+      patientId
+    );
 
-console.log(
-  "PTALK CONSULTATION: FormData patient_id:",
-  patientId
-);
+    /*
+     * Selected consultation language
+     *
+     * vi = Vietnamese
+     * en = English
+     */
+    n8nFormData.append(
+      "language",
+      language
+    );
+
+    console.log(
+      "PTALK CONSULTATION: FormData patient_id:",
+      patientId
+    );
+
+    console.log(
+      "PTALK CONSULTATION: FormData language:",
+      language
+    );
 
     /*
      * ============================================================
-     * 12. SEND TO N8N
+     * 13. SEND TO N8N
      * ============================================================
      */
 
     const n8nResponse = await fetch(
-  N8N_WEBHOOK_URL,
-  {
-    method: "POST",
+      N8N_WEBHOOK_URL,
+      {
+        method: "POST",
 
-    headers: {
-      "x-ptalk-patient-id": patientId,
-    },
+        headers: {
+          "x-ptalk-patient-id":
+            patientId,
+        },
 
-    body: n8nFormData,
+        body: n8nFormData,
 
-    cache: "no-store",
-  }
-);
+        cache: "no-store",
+      }
+    );
 
     const n8nText =
       await n8nResponse.text();
@@ -397,7 +456,7 @@ console.log(
 
     /*
      * ============================================================
-     * 13. PARSE N8N RESPONSE
+     * 14. PARSE N8N RESPONSE
      * ============================================================
      */
 
@@ -419,7 +478,7 @@ console.log(
 
     /*
      * ============================================================
-     * 14. N8N ERROR
+     * 15. N8N ERROR
      * ============================================================
      */
 
@@ -446,7 +505,7 @@ console.log(
 
     /*
      * ============================================================
-     * 15. SUCCESS
+     * 16. SUCCESS
      * ============================================================
      */
 
@@ -464,11 +523,14 @@ console.log(
         consultation_id:
           n8nData.consultation_id ??
           null,
+
+        language,
       },
       {
         status: 200,
       }
     );
+
   } catch (error) {
     console.error(
       "=========================================="
