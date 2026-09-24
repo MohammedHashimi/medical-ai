@@ -208,7 +208,7 @@ export default function LoginPage() {
                 onChange={(event) =>
                   setEmail(event.target.value)
                 }
-                className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-100"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-500 focus:ring-2 focus:ring-slate-100 [color-scheme:light]"
                 placeholder="Email"
                 autoComplete="email"
               />
@@ -232,7 +232,7 @@ export default function LoginPage() {
                 onChange={(event) =>
                   setPassword(event.target.value)
                 }
-                className="mt-1 w-full rounded-xl border border-slate-300 px-4 py-3 outline-none transition focus:border-slate-500 focus:ring-2 focus:ring-slate-100"
+                className="mt-1 w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-slate-500 focus:ring-2 focus:ring-slate-100 [color-scheme:light]"
                 placeholder="Password"
                 autoComplete="current-password"
               />
